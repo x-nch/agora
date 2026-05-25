@@ -1,0 +1,343 @@
+openapi: "3.0.3"
+info:
+  title: Agora Platform API
+  description: |
+    REST API for Woven City's Agora smart city platform.
+    Manages traffic optimization, energy management, device telemetry, and data access for city services and inventors.
+  version: "1.0.0"
+  contact:
+    name: Agora Platform Team
+    url: https://agora.woven-city.jp
+    email: platform@agora.woven-city.jp
+  license:
+    name: Proprietary — Woven by Toyota
+servers:
+  - url: https://api.agora.woven-city.jp
+    description: Production server
+  - url: https://api.staging.agora.woven-city.jp
+    description: Staging server
+  - url: https://api.dev.agora.woven-city.jp
+    description: Development server
+
+paths:
+  /api/v1/telemetry:
+    post:
+      summary: Ingest device telemetry
+      description: Submit telemetry data from IoT devices (vehicles, environmental sensors, traffic signals)
+      operationId: ingestTelemetry
+      tags:
+        - Telemetry
+      security:
+        - ApiKeyAuth: []
+        - MutualTLSAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryPayload"
+      responses:
+        "202":
+          description: Telemetry accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+                  message_id:
+                    type: string
+                    format: uuid
+                  topic:
+                    type: string
+                    example: vehicle.telemetry
+                  partition:
+                    type: integer
+                    example: 3
+                  offset:
+                    type: integer
+                    example: 1542
+        "400":
+          description: Invalid payload
+        "401":
+          description: Authentication failed
+        "429":
+          description: Rate limit exceeded
+
+  /api/v1/traffic/optimize:
+    post:
+      summary: Request traffic optimization
+      description: Submit an optimization request for traffic signal timing
+      operationId: optimizeTraffic
+      tags:
+        - Traffic
+      security:
+        - InternalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOptimizationRequest"
+      responses:
+        "200":
+          description: Optimization result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOptimizationResponse"
+        "202":
+          description: Request accepted for async processing
+
+  /api/v1/energy/optimize:
+    post:
+      summary: Request energy optimization
+      description: Submit a request for smart grid energy distribution optimization
+      operationId: optimizeEnergy
+      tags:
+        - Energy
+      security:
+        - InternalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnergyOptimizationRequest"
+      responses:
+        "200":
+          description: Optimization result
+
+  /api/v1/data/anonymized:
+    get:
+      summary: Query anonymized data
+      description: Retrieve anonymized city data for inventor applications
+      operationId: getAnonymizedData
+      tags:
+        - Data
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: topic
+          in: query
+          description: Data topic
+          required: true
+          schema:
+            type: string
+            enum:
+              - data.anonymized.vehicle
+              - data.inventor.traffic
+        - name: district
+          in: query
+          description: Filter by district
+          schema:
+            type: string
+        - name: start_time
+          in: query
+          description: Start time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          description: End time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Maximum number of records
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        "200":
+          description: Anonymized data records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnonymizedRecord"
+
+  /api/v1/incidents:
+    get:
+      summary: List incidents
+      description: Retrieve incident reports and anomaly detections
+      operationId: listIncidents
+      tags:
+        - Incidents
+      security:
+        - InternalAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [info, warning, critical]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, acknowledged, resolved]
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: List of incidents
+    post:
+      summary: Report an incident
+      description: Submit an incident report (from anomaly detector or manual)
+      operationId: reportIncident
+      tags:
+        - Incidents
+      security:
+        - InternalAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentReport"
+      responses:
+        "201":
+          description: Incident created
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for inventor/external access
+    InternalAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Internal service auth via IRSA
+    MutualTLSAuth:
+      type: mutualTLS
+      description: mTLS certificate-based auth for IoT devices
+
+  schemas:
+    TelemetryPayload:
+      type: object
+      required:
+        - source_type
+        - payload
+      properties:
+        source_type:
+          type: string
+          enum: [vehicle, environmental_sensor, traffic_signal, building]
+          description: Type of IoT device source
+        device_id:
+          type: string
+          description: Unique device identifier
+        payload:
+          type: object
+          description: Device-specific telemetry data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601)
+
+    TrafficOptimizationRequest:
+      type: object
+      required:
+        - intersection_id
+      properties:
+        intersection_id:
+          type: string
+          description: Traffic intersection identifier
+        mode:
+          type: string
+          enum: [reactive, predictive, manual]
+          default: reactive
+
+    TrafficOptimizationResponse:
+      type: object
+      properties:
+        intersection_id:
+          type: string
+        signal_commands:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignalCommand"
+        estimated_reduction:
+          type: number
+          description: Estimated delay reduction in seconds
+
+    SignalCommand:
+      type: object
+      properties:
+        direction:
+          type: string
+          enum: [north, south, east, west]
+        action:
+          type: string
+          enum: [green, yellow, red, green_extension]
+        duration_ms:
+          type: integer
+
+    EnergyOptimizationRequest:
+      type: object
+      required:
+        - district
+      properties:
+        district:
+          type: string
+        target_reduction_kw:
+          type: number
+
+    AnonymizedRecord:
+      type: object
+      properties:
+        district:
+          type: string
+        vehicle_type:
+          type: string
+        grid_lat:
+          type: number
+          description: GPS latitude rounded to 100m grid
+        grid_lng:
+          type: number
+          description: GPS longitude rounded to 100m grid
+        avg_speed:
+          type: number
+        vehicle_count:
+          type: integer
+        congestion_level:
+          type: string
+          enum: [low, medium, high]
+        time_bucket:
+          type: string
+          format: date-time
+
+    IncidentReport:
+      type: object
+      required:
+        - type
+        - severity
+      properties:
+        type:
+          type: string
+          enum: [anomaly, infrastructure, manual_report]
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        title:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+          description: Incident source identifier
+        metadata:
+          type: object

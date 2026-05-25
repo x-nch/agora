@@ -1,0 +1,45 @@
+# Agora Infrastructure — Example terraform.tfvars
+# Copy this file and modify for your environment
+# Do NOT commit actual secrets to version control
+
+aws_region             = "ap-northeast-1"
+environment            = "dev"
+
+# VPC
+vpc_cidr              = "10.0.0.0/16"
+availability_zones    = ["ap-northeast-1a", "ap-northeast-1c"]
+public_subnet_cidrs   = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs  = ["10.0.11.0/24", "10.0.12.0/24"]
+database_subnet_cidrs = ["10.0.21.0/24", "10.0.22.0/24"]
+
+# EKS
+kubernetes_version   = "1.28"
+node_instance_types  = ["t3.large"]
+desired_node_count   = 2
+min_node_count       = 1
+max_node_count       = 5
+
+# MSK
+msk_broker_type      = "serverless"
+msk_broker_count     = 3
+msk_instance_type    = "express.m7g.large"
+msk_kafka_version    = "3.6"
+
+# RDS (Aurora)
+rds_instance_class          = "db.serverless"
+rds_serverless_min_capacity = 0.5
+rds_serverless_max_capacity = 2
+rds_reader_count            = 0
+rds_multi_az                = false
+rds_backup_retention_days   = 7
+rds_storage_gb              = 100
+db_master_username          = "agora_admin"
+
+# Monitoring
+alarm_email = "alerts@agora.woven-city.jp"
+
+# Tags
+tags = {
+  Project     = "agora"
+  ManagedBy   = "terraform"
+}

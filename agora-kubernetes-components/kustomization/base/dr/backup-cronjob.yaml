@@ -1,0 +1,57 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: terraform-state-backup
+  namespace: city-services
+  labels:
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/part-of: agora-dr
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: dr-backup-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: amazon/aws-cli:latest
+              env:
+                - name: AWS_REGION
+                  value: ap-northeast-1
+                - name: TF_STATE_BUCKET
+                  value: agora-terraform-state
+                - name: BACKUP_BUCKET
+                  value: agora-prod-backups
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+                  for env in dev staging production; do
+                    echo "Backing up ${env}..."
+                    aws s3 cp \
+                      "s3://${TF_STATE_BUCKET}/${env}/terraform.tfstate" \
+                      "s3://${BACKUP_BUCKET}/terraform-state-backups/${env}/${TIMESTAMP}.tfstate" \
+                      --sse aws:kms
+                  done
+                  LOCK_COUNT=$(aws dynamodb scan --table-name terraform-lock --region ${AWS_REGION} --query "length(Items)" --output text 2>/dev/null || echo "0")
+                  if [[ "$LOCK_COUNT" -gt 0 ]]; then
+                    echo "WARNING: ${LOCK_COUNT} active lock(s) found"
+                  fi
+                  aws cloudwatch put-metric-data \
+                    --namespace Agora/DR \
+                    --metric-data "[{\"MetricName\":\"BackupAgeSeconds\",\"Value\":0,\"Unit\":\"Seconds\"}]"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dr-backup-sa
+  namespace: city-services
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/agora-dr-backup-role

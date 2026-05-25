@@ -1,0 +1,46 @@
+global:
+  namespace: city-services
+
+trafficOptimizer:
+  replicas: 3
+  image: agora/traffic-optimizer:v1.0.0
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+energyManagement:
+  replicas: 2
+  image: agora/energy-management:v1.0.0
+  resources:
+    requests:
+      cpu: 300m
+      memory: 384Mi
+    limits:
+      cpu: 700m
+      memory: 768Mi
+
+dataBroker:
+  replicas: 5
+  image: agora/data-broker:v1.0.0
+  resources:
+    requests:
+      cpu: 2
+      memory: 2Gi
+    limits:
+      cpu: 4
+      memory: 4Gi
+
+apiGateway:
+  replicas: 5
+  image: agora/api-gateway:v1.0.0
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi

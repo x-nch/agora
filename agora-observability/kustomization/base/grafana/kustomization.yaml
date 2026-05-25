@@ -1,0 +1,26 @@
+resources:
+  - grafana-deployment.yaml
+  - grafana-service.yaml
+  - grafana-sa.yaml
+  - grafana-secret.yaml
+  - grafana-datasources-cm.yaml
+  - grafana-dashboard-providers-cm.yaml
+  - dashboards/kubernetes-overview.json
+  - dashboards/agora-pipeline.json
+  - dashboards/node-exporter.json
+  - dashboards/loki-logs.json
+  - dashboards/istio-services.json
+  - dashboards/dr-readiness.json
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - dashboards/kubernetes-overview.json
+      - dashboards/agora-pipeline.json
+      - dashboards/node-exporter.json
+      - dashboards/loki-logs.json
+      - dashboards/istio-services.json
+      - dashboards/dr-readiness.json
+
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,89 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agora-pipeline-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: agora-pipeline-rules
+    rules:
+    - alert: ConsumerLagHigh
+      expr: kafka_consumer_lag{group=~".+"} > 1000
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Consumer group {{ $labels.group }} lag is above 1000"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: TrafficOptimizerLatencyBreach
+      expr: histogram_quantile(0.99, rate(processing_latency_seconds_bucket{service="traffic-optimizer"}[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Traffic optimizer p99 latency exceeds 100ms"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: EnergyOptimizerLatencyBreach
+      expr: histogram_quantile(0.99, rate(processing_latency_seconds_bucket{service="energy-optimizer"}[5m])) > 1.0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Energy optimizer p99 latency exceeds 1s"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: DeadLetterQueueAccumulating
+      expr: sum(kafka_topic_offset{topic="dlq.all"}) - sum(kafka_consumer_offset{topic="dlq.all",group="dlq-processor"}) > 1000
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Dead letter queue has over 1000 unconsumed messages"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: ProcessingErrorRateHigh
+      expr: rate(processing_errors_total{service=~".+"}[5m]) > 0.001
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Processing error rate for {{ $labels.service }} is above 0.001 per second"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: KafkaConnectTaskFailed
+      expr: kafka_connect_task_status{status="FAILED"} > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Kafka Connect task {{ $labels.task }} has failed"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: SchemaRegistryHighLatency
+      expr: histogram_quantile(0.99, rate(schema_registry_request_latency_seconds_bucket[5m])) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Schema registry p99 latency exceeds 500ms"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: HighThroughputWarning
+      expr: rate(kafka_bytes_in_per_sec[5m]) > 48000000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kafka inbound throughput exceeds 48 MB/s"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: DataBrokerHighLag
+      expr: kafka_consumer_lag{group="data-broker-group"} > 5000
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Data broker consumer lag exceeds 5000"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: AnomalyDetectorHighScoreRate
+      expr: rate(anomaly_scores_total{severity="critical"}[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Anomaly detector is reporting critical scores at >10 per second"
+        runbook: "docs/RUNBOOKS.md"

@@ -1,0 +1,235 @@
+graph TB
+    %% Multi-Tenancy & Security: 3 Namespaces · IRSA · Network Policies · Access Control
+    %% ========================================================================
+    %% KUBERNETES NAMESPACES
+    %% ========================================================================
+
+    subgraph K8S["Kubernetes — EKS Cluster (agora-production)"]
+        direction TB
+
+%% ========================================================================
+%% CITY-SERVICES NAMESPACE
+%% ========================================================================
+        subgraph CITY_NS["🏛️ city-services — Pod Security: restricted"]
+            direction TB
+
+            subgraph CITY_SA["ServiceAccounts (IRSA)"]
+                SA_TO["traffic-optimizer<br/>annotation: eks.amazonaws.com/role-arn<br/>→ TrafficOptimizerMSKRole"]
+                SA_AD["anomaly-detector<br/>→ AnomalyDetectorMSKRole"]
+                SA_EO["energy-optimizer<br/>→ EnergyOptimizerMSKRole"]
+                SA_DB["data-broker<br/>→ DataBrokerMSKRole"]
+                SA_KC["kafka-connect<br/>→ KafkaConnectMSKRole"]
+                SA_SR["schema-registry<br/>→ SchemaRegistryMSKRole"]
+                SA_DLQ["dlq-processor<br/>→ DLQProcessorMSKRole"]
+            end
+
+            subgraph CITY_NETPOL["Network Policies"]
+                NP_DENY_ALL["🛡️ default-deny-all<br/>Ingress: deny · Egress: deny<br/>(applied to all pods in ns)"]
+                NP_CITY_ALLOW["city-services-allow<br/>Allow traffic between<br/>city-services pods<br/>(except dlq)"]
+                NP_INGRESS["ingress-traffic<br/>Allow from api-gateway<br/>to all city-services pods"]
+                NP_DENY_ALL --> NP_CITY_ALLOW
+                NP_DENY_ALL --> NP_INGRESS
+            end
+
+            subgraph CITY_SECCTX["Pod SecurityContext"]
+                SC_RUNUSER["runAsNonRoot: true<br/>runAsUser: 10001<br/>runAsGroup: 30001"]
+                SC_CAPS["Capabilities:<br/>drop: ALL<br/>add: [NET_BIND_SERVICE]"]
+                SC_SECCOMP["seccompProfile:<br/>type: RuntimeDefault"]
+                SC_FSGROUP["fsGroup: 30001<br/>readOnlyRootFilesystem: true"]
+            end
+
+            subgraph CITY_PDB["PodDisruptionBudgets"]
+                PDB_TO["traffic-optimizer<br/>minAvailable: 2"]
+                PDB_AD["anomaly-detector<br/>minAvailable: 1"]
+                PDB_EO["energy-optimizer<br/>minAvailable: 1"]
+                PDB_DB["data-broker<br/>minAvailable: 3"]
+                PDB_API["api-gateway<br/>minAvailable: 2"]
+            end
+        end
+
+%% ========================================================================
+%% INVENTORS NAMESPACE
+%% ========================================================================
+        subgraph INV_NS["🔬 inventors — Pod Security: restricted"]
+            direction TB
+            NP_INV_DENY["default-deny-all"]
+            NP_INV_ALLOW["inventors-allow<br/>Allow traffic within<br/>inventors pods"]
+            NP_INV_ING["ingress-traffic<br/>Allow from api-gateway"]
+
+            INV_SA["ServiceAccounts<br/>(researcher-specific roles)"]
+
+            INV_RESQUOTA["ResourceQuota<br/>cpu: 8 cores<br/>memory: 32Gi<br/>pods: 20"]
+        end
+
+%% ========================================================================
+%% MONITORING NAMESPACE
+%% ========================================================================
+        subgraph MON_NS["📈 monitoring — Pod Security: restricted"]
+            direction TB
+            NP_MON_DENY["default-deny-all"]
+            NP_MON_ALLOW["monitoring-allow<br/>Allow Prometheus to scrape<br/>all namespaces"]
+
+            PROM_SA["prometheus-sa<br/>(ClusterRole + ClusterRoleBinding)"]
+            PROM_CONFIG["Prometheus ConfigMap<br/>Scrape configs per service"]
+            GRAFANA_SA["Grafana (no extra RBAC)"]
+        end
+
+%% ========================================================================
+%% IAM / IRSA (AWS side)
+%% ========================================================================
+    end
+
+    subgraph AWS_IAM["AWS IAM — ap-northeast-1"]
+        direction TB
+
+        OIDC_PROVIDER["OIDC Provider<br/>eks.agora-production<br/>sts.amazonaws.com<br/>thumbprint: EKS OIDC"]
+
+        subgraph MSK_ROLES["IAM Roles for MSK Access (IRSA)"]
+            ROLE_TO["TrafficOptimizerMSKRole<br/>Read: vehicle.telemetry, signal.events<br/>Write: signal.commands, incidents"]
+            ROLE_AD["AnomalyDetectorMSKRole<br/>Read: vehicle.telemetry<br/>Write: incidents, alerts.notifications"]
+            ROLE_EO["EnergyOptimizerMSKRole<br/>Read: sensor.environmental<br/>Write: alerts.notifications"]
+            ROLE_DB["DataBrokerMSKRole<br/>Read: vehicle.telemetry,<br/> sensor.environmental, signal.events<br/>Write: data.anonymized.vehicle,<br/> data.inventor.traffic"]
+            ROLE_KC["KafkaConnectMSKRole<br/>Read: all topics (*)<br/>Write: s3://agora-data-lake/*"]
+            ROLE_SR["SchemaRegistryMSKRole<br/>Read+Write: _schemas topic"]
+            ROLE_DLQ["DLQProcessorMSKRole<br/>Read: dlq.all  Write: alerts"]
+        end
+
+        subgraph IAM_POLICIES["IAM Trust Policies"]
+            TRUST_COND["Condition:<br/>StringEquals: oidc-provider:sub<br/> = system:serviceaccount:city-services:&lt;name&gt;<br/>StringEquals: oidc-provider:aud<br/> = sts.amazonaws.com"]
+        end
+
+        MSK_ROLES --- TRUST_COND
+    end
+
+%% ========================================================================
+%% DATA BROKER ACCESS CONTROL
+%% ========================================================================
+    subgraph ACCESS_CTRL["Data Broker — Access Control Matrix"]
+        direction TB
+
+        subgraph TEIERS["Consumer Tiers"]
+            TIER1["🥇 City Planners<br/>(city-services apps)"]
+            TIER2["🥈 Inventors<br/>(external researchers)"]
+            TIER3["🥉 Researchers / Public<br/>(anonymized only)"]
+        end
+
+        subgraph DATASETS["Available Datasets"]
+            DS_RAW["Raw Telemetry<br/>driver_id, vin, GPS, speed, etc."]
+            DS_AGG["Aggregated Traffic<br/>avg_speed, congestion_level,<br/>vehicle_count per district"]
+            DS_ANON["Anonymized Vehicle<br/>speed_bucket, vehicle_type,<br/>latitude(2dp), longitude(2dp)"]
+            DS_INV["Inventor Traffic<br/>avg_speed, vehicle_count,<br/>congestion_level, district_id"]
+        end
+
+        TIER1 -->|"full access"| DS_RAW
+        TIER1 -->|"full access"| DS_AGG
+        TIER1 -->|"full access"| DS_ANON
+        TIER1 -->|"full access"| DS_INV
+        TIER2 -->|"sector-level averages"| DS_INV
+        TIER3 -->|"anonymized + aggregated"| DS_ANON
+        TIER3 -->|"anonymized + aggregated"| DS_AGG
+    end
+
+%% ========================================================================
+%% MSK IAM PERMISSIONS MATRIX
+%% ========================================================================
+    subgraph PERM_MATRIX["MSK IAM Permissions Matrix"]
+        direction LR
+
+        subgraph PM_HEADER[" "]
+            PM_TOPIC["Topic"]
+            PM_R["Read"]
+            PM_W["Write"]
+        end
+
+        PM_L1["vehicle.telemetry (12p)"]
+        PM_L1_TO_R["✅"]
+        PM_L1_AD_R["✅"]
+        PM_L1_DB_R["✅"]
+        PM_L1_W[" "]
+
+        PM_L2["sensor.environmental (6p)"]
+        PM_L2_EO_R["✅"]
+        PM_L2_DB_R["✅"]
+
+        PM_L3["signal.events (6p)"]
+        PM_L3_TO_R["✅"]
+        PM_L3_DB_R["✅"]
+
+        PM_L4["signal.commands (6p)"]
+        PM_L4_TO_W["✅"]
+
+        PM_L5["incidents (1p)"]
+        PM_L5_TO_W["✅"]
+        PM_L5_AD_W["✅"]
+
+        PM_L6["alerts.notifications (1p)"]
+        PM_L6_AD_W["✅"]
+        PM_L6_EO_W["✅"]
+
+        PM_L7["data.anonymized.vehicle (12p)"]
+        PM_L7_DB_W["✅"]
+
+        PM_L8["data.inventor.traffic (3p)"]
+        PM_L8_DB_W["✅"]
+
+        PM_L9["dlq.all (1p)"]
+        PM_L9_ALL_W["⚠️ All"]
+    end
+
+%% ========================================================================
+%% EDGES — IRSA trust
+%% ========================================================================
+    SA_TO -.->|"sts:AssumeRoleWithWebIdentity<br/>OIDC provider"| ROLE_TO
+    SA_AD -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_AD
+    SA_EO -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_EO
+    SA_DB -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_DB
+    SA_KC -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_KC
+    SA_SR -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_SR
+    SA_DLQ -.->|"sts:AssumeRoleWithWebIdentity"| ROLE_DLQ
+
+%% City-services network policies
+    NP_DENY_ALL -.-> TO_POD
+    NP_DENY_ALL -.-> AD_POD
+    NP_DENY_ALL -.-> EO_POD
+    NP_DENY_ALL -.-> DB_POD
+    NP_DENY_ALL -.-> KC_POD
+    NP_DENY_ALL -.-> SR_POD
+    NP_DENY_ALL -.-> DLQ_POD
+
+%% SecurityContext applies to pods
+    SC_RUNUSER -.-> TO_POD
+    SC_RUNUSER -.-> AD_POD
+    SC_RUNUSER -.-> EO_POD
+    SC_RUNUSER -.-> DB_POD
+
+%% ========================================================================
+%% STYLING
+%% ========================================================================
+    classDef cityNs fill:#1a3a5c,color:#fff,stroke:#3a6a9c,stroke-width:2px
+    classDef invNs fill:#5c3a1a,color:#fff,stroke:#9c6a3a,stroke-width:2px
+    classDef monNs fill:#2a4a3a,color:#fff,stroke:#4a8a6a,stroke-width:2px
+    classDef iam fill:#3a1a3a,color:#fff,stroke:#6a2a6a,stroke-width:2px
+    classDef role fill:#4a2a4a,color:#fff,stroke:#7a3a7a,stroke-width:1px
+    classDef netpol fill:#1a3a3a,color:#fff,stroke:#3a6a6a,stroke-width:1px
+    classDef secctx fill:#2a2a3a,color:#fff,stroke:#5a5a7a,stroke-width:1px
+    classDef access fill:#2a3a2a,color:#fff,stroke:#5a7a5a,stroke-width:1px
+    classDef tier fill:#4a3a1a,color:#fff,stroke:#8a6a3a,stroke-width:1px
+    classDef pdb fill:#3a2a1a,color:#fff,stroke:#6a4a2a,stroke-width:1px
+    classDef sa fill:#3a3a1a,color:#fff,stroke:#6a6a2a,stroke-width:1px
+    classDef perm fill:#2a2a2a,color:#fff,stroke:#5a5a5a,stroke-width:1px
+    classDef allow fill:#1a4a1a,color:#fff,stroke:#2a8a2a,stroke-width:1px
+
+    class CITY_NS cityNs
+    class INV_NS invNs
+    class MON_NS monNs
+    class AWS_IAM,OIDC_PROVIDER,MSK_ROLES,IAM_POLICIES iam
+    class ROLE_TO,ROLE_AD,ROLE_EO,ROLE_DB,ROLE_KC,ROLE_SR,ROLE_DLQ role
+    class NP_DENY_ALL,NP_CITY_ALLOW,NP_INGRESS,NP_INV_DENY,NP_INV_ALLOW,NP_INV_ING,NP_MON_DENY,NP_MON_ALLOW netpol
+    class SC_RUNUSER,SC_CAPS,SC_SECCOMP,SC_FSGROUP secctx
+    class ACCESS_CTRL,TEIERS,DATASETS access
+    class TIER1,TIER2,TIER3 tier
+    class PDB_TO,PDB_AD,PDB_EO,PDB_DB,PDB_API pdb
+    class SA_TO,SA_AD,SA_EO,SA_DB,SA_KC,SA_SR,SA_DLQ,INV_SA,PROM_SA,GRAFANA_SA sa
+    class PERM_MATRIX,PM_HEADER,PM_L1,PM_L2,PM_L3,PM_L4,PM_L5,PM_L6,PM_L7,PM_L8,PM_L9 perm
+    class PM_L1_TO_R,PM_L1_AD_R,PM_L1_DB_R,PM_L2_EO_R,PM_L2_DB_R,PM_L3_TO_R,PM_L3_DB_R allow
+    class PM_L4_TO_W,PM_L5_TO_W,PM_L5_AD_W,PM_L6_AD_W,PM_L6_EO_W,PM_L7_DB_W,PM_L8_DB_W allow

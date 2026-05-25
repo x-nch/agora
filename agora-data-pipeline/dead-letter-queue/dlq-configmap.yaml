@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dlq-processor-config
+  namespace: city-services
+  labels:
+    app: dlq-processor
+    component: data-pipeline
+data:
+  DLQ_TOPIC: "dlq.all"
+  MAX_RETRIES: "3"

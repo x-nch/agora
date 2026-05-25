@@ -1,0 +1,4 @@
+confluent-kafka[avro]==2.6.1
+fastavro==1.9.7
+numpy==1.26.4
+prometheus-client==0.21.1

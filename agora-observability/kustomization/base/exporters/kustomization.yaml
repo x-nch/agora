@@ -1,0 +1,11 @@
+resources:
+- kafka-exporter-deployment.yaml
+- kafka-exporter-service.yaml
+- kafka-exporter-servicemonitor.yaml
+- kube-state-metrics-deployment.yaml
+- kube-state-metrics-rbac.yaml
+- kube-state-metrics-service.yaml
+- kube-state-metrics-servicemonitor.yaml
+- node-exporter-daemonset.yaml
+- node-exporter-service.yaml
+- node-exporter-servicemonitor.yaml

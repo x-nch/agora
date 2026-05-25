@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-mesh-config
+  namespace: istio-system
+data:
+  mesh: |-
+    outboundTrafficPolicy:
+      mode: REGISTRY_ONLY
+    enableTracing: true
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    defaultConfig:
+      proxyMetadata:
+        LOG_LEVEL: warning
+      concurrency: 2
+      terminationDrainDuration: 5s
+    trustDomain: cluster.local

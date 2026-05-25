@@ -1,0 +1,51 @@
+{
+  "title": "DR Readiness",
+  "version": 1,
+  "uid": "dr-readiness",
+  "panels": [
+    {
+      "title": "Terraform State Backup Age",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "time() - dr_backup_timestamp_seconds",
+          "legendFormat": "backup age (seconds)"
+        }
+      ]
+    },
+    {
+      "title": "AZ Node Distribution",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "count(node_boot_time_seconds) by (topology_kubernetes_io_zone)",
+          "legendFormat": "{{topology_kubernetes_io_zone}}"
+        }
+      ]
+    },
+    {
+      "title": "Consumer Lag (RPO Tracking)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "kafka_consumer_lag{group=~\"agora-data-broker|traffic-optimizer-group|energy-optimizer-group\"}",
+          "legendFormat": "{{group}}"
+        }
+      ]
+    },
+    {
+      "title": "P99 Latency vs RTO",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(istio_request_duration_milliseconds_bucket{namespace=\"city-services\"}[5m])) by (le, destination_service))",
+          "legendFormat": "{{destination_service}} p99"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: producer-config
+  namespace: city-services
+  labels:
+    app: agora-pipeline
+    component: client-configs
+data:
+  bootstrap.servers: "b-1:9098,b-2:9098,b-3:9098"
+  acks: "all"
+  enable.idempotence: "true"
+  max.in.flight.requests.per.connection: "5"
+  retries: "2147483647"
+  delivery.timeout.ms: "30000"
+  batch.size: "65536"
+  linger.ms: "10"
+  compression.type: "snappy"
+  buffer.memory: "134217728"
+  security.protocol: "SASL_SSL"
+  sasl.mechanism: "AWS_MSK_IAM"

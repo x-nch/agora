@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: monitoring
+data:
+  loki.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+    common:
+      replication_factor: 1
+      storage:
+        s3:
+          bucketnames: agora-ENVIRONMENT-app-logs
+          region: ap-northeast-1
+          s3forcepathstyle: false
+      path_prefix: /loki
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: s3
+          schema: v12
+          index:
+            prefix: index_
+            period: 24h
+    storage_config:
+      tsdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/index_cache
+        shared_store: s3
+      aws:
+        s3: s3://agora-ENVIRONMENT-app-logs/loki/
+        region: ap-northeast-1
+    compactor:
+      working_directory: /loki/compactor
+      shared_store: s3
+      retention_enabled: true
+    limits_config:
+      retention_period: 720h
+      ingestion_rate_mb: 16
+      ingestion_burst_size_mb: 32
+      max_query_series: 500
+      max_entries_limit_per_query: 5000
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100

@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: data-broker
+  labels:
+    app: data-broker
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app: data-broker

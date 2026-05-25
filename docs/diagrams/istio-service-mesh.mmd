@@ -1,0 +1,64 @@
+graph TB
+  subgraph "Istio Control Plane (istio-system)"
+    I[istiod<br/>Discovery + CA + Config]
+  end
+
+  subgraph "city-services Namespace"
+    subgraph "Traffic Optimizer Pod"
+      TO_APP[traffic-optimizer<br/>:8080]
+      TO_ENVOY[Envoy Proxy<br/>Sidecar 🔒]
+    end
+    subgraph "Energy Management Pod"
+      EM_APP[energy-management<br/>:8080]
+      EM_ENVOY[Envoy Proxy<br/>Sidecar 🔒]
+    end
+    subgraph "Data Broker Pod"
+      DB_APP[data-broker<br/>:8080]
+      DB_ENVOY[Envoy Proxy<br/>Sidecar 🔒]
+    end
+    subgraph "API Gateway Pod"
+      GW_APP[api-gateway<br/>:8080]
+      GW_ENVOY[Envoy Proxy<br/>Sidecar 🔒]
+    end
+
+    TO_APP <-. mTLS .-> EM_APP
+    TO_APP <-. mTLS .-> DB_APP
+    GW_APP <-. mTLS .-> TO_APP
+    GW_APP <-. mTLS .-> EM_APP
+    GW_APP <-. mTLS .-> DB_APP
+  end
+
+  subgraph "inventors Namespace"
+    subgraph "Inventor Pod"
+      INV_APP[inventor-app]
+      INV_ENVOY[Envoy Proxy<br/>Sidecar 🔒]
+    end
+  end
+
+  subgraph "monitoring Namespace"
+    PROM[Prometheus<br/>scrapes /metrics]
+  end
+
+  I -.->|Discovery| TO_ENVOY
+  I -.->|Discovery| EM_ENVOY
+  I -.->|Discovery| DB_ENVOY
+  I -.->|Discovery| GW_ENVOY
+  I -.->|Discovery| INV_ENVOY
+
+  ALB[AWS ALB<br/>TLS termination]
+  ALB -->|HTTPS :443| GW_ENVOY
+
+  INV_ENVOY -.->|egress only| GW_ENVOY
+  TO_ENVOY -.->|metrics| PROM
+  EM_ENVOY -.->|metrics| PROM
+  DB_ENVOY -.->|metrics| PROM
+  GW_ENVOY -.->|metrics| PROM
+
+  style I fill:#4fc3f7,stroke:#0288d1,color:#000
+  style TO_ENVOY fill:#81c784,stroke:#388e3c,color:#000
+  style EM_ENVOY fill:#81c784,stroke:#388e3c,color:#000
+  style DB_ENVOY fill:#81c784,stroke:#388e3c,color:#000
+  style GW_ENVOY fill:#81c784,stroke:#388e3c,color:#000
+  style INV_ENVOY fill:#81c784,stroke:#388e3c,color:#000
+  style ALB fill:#ffb74d,stroke:#f57c00,color:#000
+  style PROM fill:#e57373,stroke:#c62828,color:#000

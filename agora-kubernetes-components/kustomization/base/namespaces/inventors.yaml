@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: inventors
+  labels:
+    name: inventors
+    pod-security.kubernetes.io/enforce: baseline
+    istio-injection: enabled

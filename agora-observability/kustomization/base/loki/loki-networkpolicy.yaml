@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-network
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: loki
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: promtail
+      ports:
+        - port: 3100
+    - from:
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - port: 3100

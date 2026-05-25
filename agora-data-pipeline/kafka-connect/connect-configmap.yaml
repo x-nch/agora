@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-connect-config
+  namespace: city-services
+  labels:
+    app: kafka-connect
+    component: data-pipeline
+data:
+  CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "3"
+  CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "3"
+  CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "3"
+  CONNECT_CONSUMER_MAX_POLL_RECORDS: "500"
+  CONNECT_CONSUMER_MAX_PARTITION_FETCH_BYTES: "1048576"
+  CONNECT_PRODUCER_BATCH_SIZE: "65536"
+  CONNECT_PRODUCER_LINGER_MS: "10"
+  CONNECT_PRODUCER_COMPRESSION_TYPE: "snappy"
+  # Install S3 Sink connector plugin on startup:
+  # confluent-hub install confluentinc/kafka-connect-s3:latest --no-prompt

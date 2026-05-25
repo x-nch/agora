@@ -1,0 +1,28 @@
+---
+title: Agora Platform — Real-Time Processing Latency Timeline
+---
+gantt
+    title Vehicle Speed Data End-to-End Latency (SLO &lt;100ms)
+    dateFormat X
+    axisFormat %s
+
+    section Device to Cloud
+    Telemetry send + mTLS auth    : 0, 2
+    Kafka produce to broker 1     : 2, 4
+
+    section Kafka Replication
+    Replicate to broker 2 and 3   : 4, 6
+    Available for consumers       : 6, 7
+
+    section Stream Processing
+    Consumer reads partition 0    : 7, 9
+    Traffic optimizer processes   : 9, 16
+    Anomaly detection check       : 16, 19
+
+    section Cloud to Device
+    Write to signal.commands      : 19, 21
+    Signal receives command       : 21, 23
+
+    section Total
+    Total end-to-end latency      : 0, 23
+    SLO target is under 100ms     : 0, 100

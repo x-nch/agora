@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "SignalCommand",
+  "namespace": "agora.traffic.commands",
+  "doc": "Traffic signal control commands from the traffic optimizer processor",
+  "fields": [
+    {"name": "command_id", "type": {"type": "string", "logicalType": "uuid"}},
+    {"name": "intersection_id", "type": "string"},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "command_type", "type": {"type": "enum", "name": "SignalCommandType", "symbols": ["extend_green", "reduce_green", "switch_to_red", "switch_to_green", "emergency_preempt", "reset_to_cycle", "manual_override"]}},
+    {"name": "target_phase", "type": "agora.traffic.SignalPhase"},
+    {"name": "duration_ms", "type": "long"},
+    {"name": "reason", "type": "string"},
+    {"name": "processor_id", "type": "string"},
+    {"name": "original_event_offset", "type": "long"},
+    {"name": "ttl_ms", "type": "long", "default": 5000},
+    {"name": "metadata", "type": ["null", {"type": "map", "values": "string"}], "default": null}
+  ]
+}

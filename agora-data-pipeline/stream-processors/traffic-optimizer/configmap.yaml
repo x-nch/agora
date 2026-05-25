@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-optimizer-config
+  namespace: city-services
+  labels:
+    app: traffic-optimizer
+    component: stream-processor
+data:
+  GROUP_ID: "traffic-optimizer-group"
+  LOG_LEVEL: "INFO"
+  WINDOW_SIZE_MS: "5000"
+  QUEUE_THRESHOLD: "50"
+  SPEED_THRESHOLD_KMH: "5"

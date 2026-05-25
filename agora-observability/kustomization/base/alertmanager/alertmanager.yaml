@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  name: agora
+  namespace: monitoring
+spec:
+  image: quay.io/prometheus/alertmanager:v0.27.0
+  replicas: 2
+  alertmanagerConfigSelector:
+    matchLabels:
+      agora.io/alertmanager-config: "true"
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi

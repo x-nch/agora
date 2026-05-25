@@ -1,0 +1,80 @@
+topics:
+  - name: vehicle.telemetry
+    partitions: 12
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete,compact"
+      retention.ms: 604800000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+      max.message.bytes: 1048576
+      segment.bytes: 1073741824
+
+  - name: sensor.environmental
+    partitions: 6
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 604800000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+
+  - name: signal.events
+    partitions: 6
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 604800000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+
+  - name: incidents
+    partitions: 1
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 2592000000
+      min.insync.replicas: 2
+
+  - name: signal.commands
+    partitions: 6
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 172800000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+
+  - name: data.anonymized.vehicle
+    partitions: 12
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 2592000000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+
+  - name: data.inventor.traffic
+    partitions: 3
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 604800000
+      compression.type: "snappy"
+      min.insync.replicas: 2
+
+  - name: alerts.notifications
+    partitions: 1
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete,compact"
+      retention.ms: 7776000000
+      min.insync.replicas: 2
+
+  - name: dlq.all
+    partitions: 1
+    replication_factor: 3
+    config:
+      cleanup.policy: "delete"
+      retention.ms: 2592000000
+      min.insync.replicas: 2

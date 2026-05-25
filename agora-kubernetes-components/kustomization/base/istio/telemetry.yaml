@@ -1,0 +1,42 @@
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  tracing:
+    - providers:
+        - name: zipkin
+      randomSamplingPercentage: 100.0
+  accessLogging:
+    - providers:
+        - name: envoy
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: detailed-logging
+  namespace: city-services
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+      match:
+        mode: ANY
+      filter:
+        expression: "true"
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: inventor-error-logging
+  namespace: inventors
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+      match:
+        mode: CLIENT_AND_SERVER
+      filter:
+        expression: "response.code >= 400 || response.code == 0"

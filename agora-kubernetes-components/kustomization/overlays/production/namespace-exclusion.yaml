@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: NamespaceTransformer
+metadata:
+  name: namespace-transformer
+  annotations:
+    config.kubernetes.io/local-config: "true"
+fieldSpecs:
+  - path: metadata/name
+    kind: Namespace
+    create: false

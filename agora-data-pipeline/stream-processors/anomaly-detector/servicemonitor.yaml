@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: anomaly-detector
+  namespace: city-services
+  labels:
+    app: anomaly-detector
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: anomaly-detector
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - city-services

@@ -1,0 +1,50 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: agora-prometheus
+  namespace: monitoring
+spec:
+  image: quay.io/prometheus/prometheus:v2.51.0
+  replicas: 2
+  retention: 90d
+  retentionSize: 90GB
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+  serviceAccountName: prometheus
+  serviceMonitorSelector: {}
+  serviceMonitorNamespaceSelector: {}
+  ruleSelector: {}
+  ruleNamespaceSelector: {}
+  alerting:
+    alertmanagers:
+      - name: alertmanager-operated
+        namespace: monitoring
+        port: web
+  remoteWrite:
+    - url: $(AMP_REMOTE_WRITE_URL)
+      sigv4:
+        region: ap-northeast-1
+        roleArn: $(AMP_IRSA_ROLE_ARN)
+      queueConfig:
+        capacity: 2500
+        maxShards: 200
+        minShards: 1
+        maxSamplesPerSend: 500
+        batchSendDeadline: 5s
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000

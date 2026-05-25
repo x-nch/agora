@@ -1,0 +1,93 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agora-pipeline-rules
+  namespace: city-services
+  labels:
+    app: agora-pipeline
+    component: monitoring
+spec:
+  groups:
+    - name: agora-pipeline
+      interval: 30s
+      rules:
+        - alert: ConsumerLagHigh
+          expr: kafka_consumer_lag{group=~".+"} > 1000
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Consumer group {{ $labels.group }} lag > 1000 messages"
+            description: "Consumer group {{ $labels.group }} on topic {{ $labels.topic }} has lagged by {{ $value }} messages for 5 minutes"
+
+        - alert: TrafficOptimizerLatencyBreach
+          expr: histogram_quantile(0.99, rate(processing_latency_seconds_bucket{service="traffic-optimizer"}[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Traffic optimizer P99 latency > 100ms (SLO breach)"
+
+        - alert: EnergyOptimizerLatencyBreach
+          expr: histogram_quantile(0.99, rate(processing_latency_seconds_bucket{service="energy-optimizer"}[5m])) > 1.0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Energy optimizer P99 latency > 1s (SLO breach)"
+
+        - alert: DeadLetterQueueAccumulating
+          expr: sum(kafka_topic_offset{topic="dlq.all"}) - sum(kafka_consumer_offset{topic="dlq.all",group="dlq-processor"}) > 1000
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "DLQ has > 1000 unprocessed messages"
+
+        - alert: ProcessingErrorRateHigh
+          expr: rate(processing_errors_total{service=~".+"}[5m]) > 0.001
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Error rate > 0.1% for {{ $labels.service }}"
+
+        - alert: KafkaConnectTaskFailed
+          expr: kafka_connect_task_status{status="FAILED"} > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kafka Connect task {{ $labels.connector }} is in FAILED state"
+
+        - alert: SchemaRegistryHighLatency
+          expr: histogram_quantile(0.99, rate(schema_registry_request_latency_seconds_bucket[5m])) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Schema Registry P99 latency > 500ms"
+
+        - alert: HighThroughputWarning
+          expr: rate(kafka_bytes_in_per_sec[5m]) > 48000000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Produce throughput > 80% of broker capacity (60 MBps limit)"
+
+        - alert: DataBrokerHighLag
+          expr: kafka_consumer_lag{group="data-broker-group"} > 5000
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Data broker lag > 5000 messages"
+
+        - alert: AnomalyDetectorHighScoreRate
+          expr: rate(anomaly_scores_total{severity="critical"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Critical anomaly rate > 10/min - possible incident wave"

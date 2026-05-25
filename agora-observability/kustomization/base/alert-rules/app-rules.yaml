@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agora-app-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: agora-app-rules
+    rules:
+    - alert: TrafficOptimizerLatencyHigh
+      expr: histogram_quantile(0.99, sum(rate(traffic_optimizer_request_duration_seconds_bucket[5m])) by (le)) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Traffic optimizer p99 request latency exceeds 100ms"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: EnergyManagementErrorRateHigh
+      expr: rate(energy_management_errors_total[5m]) > 0.001
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Energy management error rate exceeds 0.001 per second"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently"
+        runbook: "docs/RUNBOOKS.md"
+    - alert: HighMemoryUsage
+      expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} memory usage exceeds 90%"
+        runbook: "docs/RUNBOOKS.md"

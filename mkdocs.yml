@@ -1,0 +1,288 @@
+# Agora Platform Documentation — MkDocs Configuration
+# Source: mkdocs.yml
+# Build: mkdocs build
+# Serve: mkdocs serve
+
+site_name: Agora Platform Documentation
+site_description: Complete documentation for Woven City's Agora smart city platform — infrastructure, Kubernetes, data pipeline, operations, and security
+site_author: Woven by Toyota
+site_url: https://agora.woven-city.jp/docs
+repo_url: https://github.com/woven-by-toyota/agora
+repo_name: woven-by-toyota/agora
+edit_uri: edit/main/docs/
+copyright: Proprietary — Woven by Toyota / Agora Platform
+
+theme:
+  name: material
+  language: en
+  features:
+    # Navigation
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - toc.integrate
+    # Search
+    - search.suggest
+    - search.highlight
+    - search.share
+    # Content
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    # Header
+    - header.autohide
+    # Others
+    - announce.dismiss
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    logo: material/city
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      separator: '[\s\-\._]+'
+      lang:
+        - en
+        - ja
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+  - git-committers:
+      repository: woven-by-toyota/agora
+      branch: main
+  - awesome-pages:
+      filename: .pages.yml
+  - glightbox:
+      touchNavigation: true
+      draggable: true
+      loop: false
+      effect: zoom
+      width: 100%
+      height: auto
+      zoomable: true
+      caption_position: bottom
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  # PyMdown
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: woven-by-toyota
+      repo: agora
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/woven-by-toyota/agora
+    - icon: fontawesome/brands/aws
+      link: https://aws.amazon.com
+  consent:
+    title: Documentation Analytics
+    description: >-
+      We use cookies to improve documentation quality. No personal data is collected.
+    cookies:
+      analytics: Google Analytics (optional)
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve by opening a GitHub issue.
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
+  - javascripts/tablesort.js
+
+# =============================================================================
+# Navigation Structure
+# =============================================================================
+
+nav:
+  - Overview:
+      - Welcome: docs/README.md
+      - Getting Started: docs/GETTING_STARTED.md
+      - Glossary: docs/GLOSSARY.md
+      - Executive Summary: docs/EXECUTIVE-SUMMARY.md
+      - Background: docs/BACKGROUND.md
+
+  - Architecture:
+      - Architecture Overview: docs/ARCHITECTURE.md
+      - Istio Service Mesh: docs/istio-service-mesh.md
+      - Diagrams:
+        - Diagram Index: docs/diagrams/README.md
+        - High-Level Architecture: diagrams/high-level-architecture.svg
+        - AWS Infrastructure: diagrams/aws-infrastructure.svg
+        - Data Flow: diagrams/dataflow.svg
+        - Latency Timeline: diagrams/latency-timeline.svg
+        - Istio Service Mesh: diagrams/istio-service-mesh.mmd
+        - DR Architecture: diagrams/dr-architecture.mmd
+        - Terraform State Lock: diagrams/terraform-state-lock.mmd
+
+  - Phase 1: Infrastructure:
+      - Overview: agora-infrastructure/README.md
+      - Architecture: docs/ARCHITECTURE.md
+      - Terraform Modules:
+        - VPC: agora-infrastructure/terraform/modules/vpc/README.md
+        - EKS: agora-infrastructure/terraform/modules/eks/README.md
+        - MSK: agora-infrastructure/terraform/modules/msk/README.md
+        - RDS (Aurora): agora-infrastructure/terraform/modules/rds/README.md
+        - S3: agora-infrastructure/terraform/modules/s3/README.md
+        - Monitoring: agora-infrastructure/terraform/modules/monitoring/README.md
+        - IAM: agora-infrastructure/terraform/modules/iam/README.md
+      - Environments:
+        - Development: docs/DEPLOYMENT.md#41-bootstrap-state-backend-one-time
+        - Staging: docs/DEPLOYMENT.md#42-deploy-root-module
+        - Production: docs/DEPLOYMENT.md#73-production-environment
+      - Scaling: docs/SCALING.md
+      - Deployment: docs/DEPLOYMENT.md#4-phase-1-terraform-iac-deployment
+      - Disaster Recovery: docs/DISASTER-RECOVERY.md
+
+  - Phase 2: Kubernetes:
+      - Overview: agora-kubernetes-components/README.md
+      - Architecture: docs/ARCHITECTURE.md#3-compute-architecture-eks
+      - Multi-Tenancy: docs/ARCHITECTURE.md#8-multi-tenancy-architecture
+      - RBAC: docs/ARCHITECTURE.md#8-multi-tenancy-enforcement
+      - Network Policies: docs/SECURITY.md#34-kubernetes-network-policies
+      - Autoscaling:
+        - HPA Configuration: docs/SCALING.md#42-pod-level-scaling-hpa
+        - Karpenter: docs/SCALING.md#41-node-group-scaling-karpenter--cluster-autoscaler
+      - Monitoring:
+        - Prometheus Rules: agora-kubernetes-components/monitoring/prometheus-rules.yaml
+        - Grafana Dashboards: docs/ARCHITECTURE.md#93-prometheus-alert-rules-phase-2
+      - Deployment: docs/DEPLOYMENT.md#5-phase-2-kubernetes-deployment
+      - Resources:
+        - Namespaces: agora-kubernetes-components/kustomization/base/namespaces/
+        - RBAC: agora-kubernetes-components/kustomization/base/rbac/
+        - Network Policies: agora-kubernetes-components/kustomization/base/network-policies/
+        - Resource Quotas: agora-kubernetes-components/kustomization/base/resource-quotas/
+        - Priority Classes: agora-kubernetes-components/kustomization/base/priority-classes/
+
+  - Phase 3: Data Pipeline:
+      - Overview: agora-data-pipeline/README.md
+      - Pipeline Architecture: agora-data-pipeline/docs/ARCHITECTURE.md
+      - Topic Design: agora-data-pipeline/docs/TOPIC-DESIGN.md
+      - Schema Evolution: agora-data-pipeline/docs/SCHEMA-EVOLUTION.md
+      - Stream Processors:
+        - Traffic Optimizer: docs/ARCHITECTURE.md#72-stream-processor-details
+        - Anomaly Detector: docs/ARCHITECTURE.md#72-stream-processor-details
+        - Energy Optimizer: docs/ARCHITECTURE.md#72-stream-processor-details
+        - Data Broker: docs/ARCHITECTURE.md#72-stream-processor-details
+      - Dead Letter Queue: docs/ARCHITECTURE.md#73-dead-letter-queue-flow
+      - IAM & Auth: docs/SECURITY.md#5-msk-iam-access-control
+      - Monitoring:
+        - Prometheus Pipeline Rules: agora-data-pipeline/monitoring/prometheus-rules-pipeline.yaml
+        - Grafana Pipeline Dashboard: agora-data-pipeline/monitoring/grafana-dashboard-pipeline.json
+      - Scaling: agora-data-pipeline/docs/SCALING.md
+      - Troubleshooting: agora-data-pipeline/docs/TROUBLESHOOTING.md
+
+  - Observability:
+      - Overview: agora-observability/README.md
+      - Architecture: agora-observability/docs/ARCHITECTURE.md
+      - Alerting: agora-observability/docs/ALERTING.md
+      - Dashboards: agora-observability/docs/DASHBOARDS.md
+      - Runbooks: agora-observability/docs/RUNBOOKS.md
+
+  - Operations:
+      - Operations Runbook: docs/OPERATIONS_RUNBOOK.md
+      - Operations Guide: docs/OPERATIONS.md
+      - Deployment Guide: docs/DEPLOYMENT_GUIDE.md
+      - Disaster Recovery: docs/DISASTER-RECOVERY.md
+      - Terraform State Lock: docs/terraform-state-lock.md
+      - DR Runbook: docs/DISASTER-RECOVERY.md#11-dr-runbooks
+      - Troubleshooting: docs/TROUBLESHOOTING.md
+      - Scaling: docs/SCALING.md
+
+  - Security:
+      - Security Architecture: docs/SECURITY.md
+      - IAM & Access Control: docs/SECURITY.md#4-identity--access-management
+      - Network Policies: docs/SECURITY.md#3-network-security
+      - Data Protection: docs/SECURITY.md#8-data-protection
+      - Audit & Compliance: docs/SECURITY.md#9-audit--compliance
+      - Incident Response: docs/SECURITY.md#11-incident-response-security
+
+  - API Reference:
+      - API Overview: docs/api/README.md
+      - OpenAPI Specification: docs/api/agora-platform-openapi.yaml
+      - Health Endpoints: docs/TROUBLESHOOTING.md#13-health-check-endpoints
+
+  - Implementation:
+      - Implementation Plan: docs/IMPLEMENTATION-PLAN.md
+      - Project Timeline: docs/IMPLEMENTATION-PLAN.md#timeline
+
+  - Contributing:
+      - How to Contribute: CONTRIBUTING.md
+      - Changelog: CHANGELOG.md

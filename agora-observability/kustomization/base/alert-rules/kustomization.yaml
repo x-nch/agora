@@ -1,0 +1,5 @@
+resources:
+- kubernetes-system-rules.yaml
+- pipeline-rules.yaml
+- app-rules.yaml
+- dr-rules.yaml

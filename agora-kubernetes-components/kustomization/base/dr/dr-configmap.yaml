@@ -1,0 +1,29 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-config
+  namespace: city-services
+data:
+  dr.rto.safety-critical: "30s"
+  dr.rto.city-operational: "5m"
+  dr.rto.convenience: "30m"
+  dr.rto.cross-region: "4h"
+  dr.rpo.safety-critical: "0"
+  dr.rpo.city-operational: "1m"
+  dr.rpo.convenience: "7d"
+  dr.rpo.cross-region: "5m"
+  dr.slo.safety-critical: "99.999"
+  dr.slo.city-operational: "99.9"
+  dr.slo.convenience: "99.5"
+  dr.backup.aurora-snapshot-retention: "30"
+  dr.backup.state-s3-bucket: "agora-prod-backups"
+  dr.backup.state-s3-prefix: "terraform-state-backups/"
+  dr.backup.cron-schedule: "0 2 * * *"
+  dr.failover.aurora.target-region: "ap-northeast-1"
+  dr.failover.eks.pdb-min-available: "2"
+  dr.cross-region.dr-region: "ap-southeast-1"
+  dr.test.tabletop-frequency: "quarterly"
+  dr.test.chaos-staging-frequency: "monthly"
+  dr.test.full-drill-frequency: "annual"
+  dr.notify.slack-channel: "#dr-alerts"

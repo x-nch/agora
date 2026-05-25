@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: energy-optimizer
+  labels:
+    app: energy-optimizer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: energy-optimizer
+  template:
+    metadata:
+      labels:
+        app: energy-optimizer
+    spec:
+      serviceAccountName: energy-optimizer
+      containers:
+        - name: optimizer
+          image: energy-optimizer:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: energy-optimizer-config
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import confluent_kafka; confluent_kafka.Consumer({'bootstrap.servers': '$BOOTSTRAP_SERVERS', 'group.id': 'healthcheck'})"
+            initialDelaySeconds: 15
+            periodSeconds: 30

@@ -1,0 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: agora
+
+resources:
+  - namespaces/city-services.yaml
+  - namespaces/inventors.yaml
+  - namespaces/monitoring.yaml
+  - rbac/city-services-role.yaml
+  - rbac/city-services-rolebinding.yaml
+  - rbac/inventors-role.yaml
+  - rbac/inventors-rolebinding.yaml
+  - network-policies/default-deny-all.yaml
+  - network-policies/city-services-allow.yaml
+  - network-policies/inventors-allow.yaml
+  - network-policies/monitoring-allow.yaml
+  - network-policies/ingress-traffic.yaml
+  - resource-quotas/city-services-quota.yaml
+  - resource-quotas/inventors-quota.yaml
+  - services/traffic-optimizer/deployment.yaml
+  - services/traffic-optimizer/service.yaml
+  - services/traffic-optimizer/hpa.yaml
+  - services/traffic-optimizer/pdb.yaml
+  - services/traffic-optimizer/servicemonitor.yaml
+  - services/traffic-optimizer/sa.yaml
+  - services/energy-management/deployment.yaml
+  - services/energy-management/service.yaml
+  - services/energy-management/hpa.yaml
+  - services/energy-management/pdb.yaml
+  - services/energy-management/servicemonitor.yaml
+  - services/energy-management/sa.yaml
+  - services/data-broker/deployment.yaml
+  - services/data-broker/service.yaml
+  - services/data-broker/hpa.yaml
+  - services/data-broker/pdb.yaml
+  - services/data-broker/servicemonitor.yaml
+  - services/api-gateway/deployment.yaml
+  - services/api-gateway/service.yaml
+  - services/api-gateway/ingress.yaml
+  - services/api-gateway/networkpolicy.yaml
+  - services/api-gateway/hpa.yaml
+  - services/api-gateway/pdb.yaml
+  - services/api-gateway/servicemonitor.yaml
+  - monitoring/prometheus-deployment.yaml
+  - monitoring/prometheus-service.yaml
+  - monitoring/prometheus-pvc.yaml
+  - monitoring/grafana-deployment.yaml
+  - monitoring/grafana-service.yaml
+  - monitoring/prometheus-configmap.yaml
+  - monitoring/prometheus-sa.yaml
+  - monitoring/prometheus-clusterrole.yaml
+  - monitoring/prometheus-clusterrolebinding.yaml
+  - monitoring/grafana-admin-secret.yaml
+  - monitoring/grafana-dashboards-configmap.yaml
+  - monitoring/grafana-datasources-configmap.yaml
+  - ingress/ingress-class.yaml
+  - ingress/api-gateway-ingress.yaml
+  - services/data-broker/sa.yaml
+  - priority-classes/critical.yaml
+  - istio/peer-authentication.yaml
+  - istio/authorization-policy.yaml
+  - istio/sidecar.yaml
+  - istio/request-authentication.yaml
+  - istio/telemetry.yaml
+  - istio/mesh-config.yaml
+  - dr/dr-configmap.yaml
+  - dr/backup-cronjob.yaml

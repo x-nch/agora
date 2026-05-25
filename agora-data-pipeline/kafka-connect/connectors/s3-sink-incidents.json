@@ -1,0 +1,21 @@
+{
+  "name": "s3-sink-incidents",
+  "config": {
+    "connector.class": "io.confluent.connect.s3.S3SinkConnector",
+    "tasks.max": "1",
+    "topics": "incidents",
+    "s3.bucket.name": "agora-prod-data-lake",
+    "s3.region": "ap-northeast-1",
+    "s3.part.size": "67108864",
+    "flush.size": "500",
+    "rotate.interval.ms": "3600000",
+    "storage.class": "io.confluent.connect.s3.storage.S3Storage",
+    "format.class": "io.confluent.connect.s3.format.avro.AvroFormat",
+    "schema.compatibility": "FORWARD_TRANSITIVE",
+    "partitioner.class": "io.confluent.connect.storage.partitioner.DefaultPartitioner",
+    "path.format": "'year'=YYYY/'month'=MM/'day'=dd/'hour'=HH",
+    "locale": "ja_JP",
+    "timezone": "Asia/Tokyo",
+    "topics.dir": "raw/incidents"
+  }
+}

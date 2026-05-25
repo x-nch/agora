@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "SignalEvent",
+  "namespace": "agora.traffic",
+  "doc": "Traffic signal state change events from intersection controllers",
+  "fields": [
+    {"name": "intersection_id", "type": "string"},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "current_phase", "type": {"type": "enum", "name": "SignalPhase", "symbols": ["red", "green", "yellow", "flashing", "off"]}},
+    {"name": "phase_duration_ms", "type": "long"},
+    {"name": "queue_length", "type": "int", "doc": "Number of vehicles waiting at intersection"},
+    {"name": "avg_speed_kmh", "type": "float"},
+    {"name": "vehicle_count_by_type", "type": {"type": "map", "values": "int"}},
+    {"name": "pedestrian_crossing", "type": "boolean", "default": false},
+    {"name": "emergency_vehicle_approach", "type": "boolean", "default": false},
+    {"name": "district", "type": "agora.telemetry.District"}
+  ]
+}

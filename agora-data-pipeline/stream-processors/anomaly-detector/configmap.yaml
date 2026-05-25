@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detector-config
+  namespace: city-services
+  labels:
+    app: anomaly-detector
+    component: stream-processor
+data:
+  GROUP_ID: "anomaly-detector-group"
+  LOG_LEVEL: "INFO"
+  ANOMALY_THRESHOLD: "0.8"

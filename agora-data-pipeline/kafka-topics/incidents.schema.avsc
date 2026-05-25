@@ -1,0 +1,24 @@
+{
+  "type": "record",
+  "name": "Incident",
+  "namespace": "agora.incidents",
+  "doc": "Anomaly and incident reports from stream processors",
+  "fields": [
+    {"name": "incident_id", "type": {"type": "string", "logicalType": "uuid"}},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "incident_type", "type": {"type": "enum", "name": "IncidentType", "symbols": ["near_collision", "unusual_driving", "sensor_failure", "communication_loss", "pattern_deviation", "traffic_light_malfunction", "emergency_vehicle_preemption", "environmental_hazard"]}},
+    {"name": "severity", "type": {"type": "enum", "name": "Severity", "symbols": ["low", "medium", "high", "critical"]}},
+    {"name": "source", "type": "string", "doc": "Processor or system that generated the incident"},
+    {"name": "source_topic", "type": "string"},
+    {"name": "source_partition", "type": "int"},
+    {"name": "source_offset", "type": "long"},
+    {"name": "location_lat", "type": ["null", "double"], "default": null},
+    {"name": "location_lng", "type": ["null", "double"], "default": null},
+    {"name": "district", "type": ["null", "agora.telemetry.District"], "default": null},
+    {"name": "entities_involved", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "anomaly_score", "type": ["null", "float"], "default": null},
+    {"name": "description", "type": "string"},
+    {"name": "recommended_action", "type": ["null", "string"], "default": null},
+    {"name": "metadata", "type": ["null", {"type": "map", "values": "string"}], "default": null}
+  ]
+}

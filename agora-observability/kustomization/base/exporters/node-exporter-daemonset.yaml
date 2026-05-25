@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name: node-exporter
+        image: quay.io/prometheus/node-exporter:v1.8.1
+        args:
+        - --path.rootfs=/host
+        - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/.*)
+        ports:
+        - name: metrics
+          containerPort: 9100
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - name: root
+          mountPath: /host
+          readOnly: true
+      securityContext:
+        runAsUser: 65534
+        runAsNonRoot: true
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - name: root
+        hostPath:
+          path: /

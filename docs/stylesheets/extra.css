@@ -1,0 +1,39 @@
+/* Agora Platform Documentation — Extra Styles */
+
+/* Custom landing page styling */
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Table styling for configuration tables */
+.md-typeset table:not(.highlight) {
+  font-size: 0.78rem;
+}
+
+.md-typeset table:not(.highlight) th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Code block styling */
+.md-typeset code {
+  font-size: 0.78em;
+}
+
+/* Admonition coloring */
+.md-typeset .admonition,
+.md-typeset details {
+  font-size: 0.8rem;
+}
+
+/* Navigation active section */
+.md-nav__link--active {
+  font-weight: 600;
+}
+
+/* Glossary term styling */
+.md-typeset dt {
+  font-weight: 600;
+  margin-top: 1em;
+}

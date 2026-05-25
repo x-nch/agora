@@ -1,0 +1,172 @@
+graph TB
+    %% Latency Timeline: IoT Device → MSK → Processing → Output
+    %% SLO Targets: traffic-optimizer <100ms · anomaly-detector <500ms · energy-optimizer <1s · data-broker <2s
+    %% ========================================================================
+    %% PROCESSING LATENCY PIPELINES (approximate timing in ms)
+    %% ========================================================================
+
+    subgraph TIMELINE["⏱️ Processing Latency Pipelines (p99 targets, ms)"]
+        direction TB
+
+        INGEST["Ingestion (0-5ms)<br/>MQTT publish → IoT Gateway → MSK produce"]
+        MSK_TIMING["MSK Express (5-12ms)<br/>3-broker replication + ISR ack"]
+
+        subgraph TO_TIMING["🚦 traffic-optimizer: Target <100ms"]
+            direction LR
+            T1["Poll+Deser<br/>12-18ms"]
+            T2["Compute<br/>18-70ms"]
+            T3["Produce<br/>70-95ms"]
+            T1 --> T2 --> T3
+        end
+
+        subgraph AD_TIMING["🔍 anomaly-detector: Target <500ms"]
+            direction LR
+            A1["Poll+Deser<br/>12-22ms"]
+            A2["ML Inference<br/>22-220ms"]
+            A3["Produce+Alert<br/>220-480ms"]
+            A1 --> A2 --> A3
+        end
+
+        subgraph EO_TIMING["⚡ energy-optimizer: Target <1,000ms"]
+            direction LR
+            E1["Poll+Deser<br/>12-28ms"]
+            E2["Analyze+Query<br/>28-600ms"]
+            E3["Produce Alert<br/>600-950ms"]
+            E1 --> E2 --> E3
+        end
+
+        subgraph DB_TIMING["🔄 data-broker: Target <2,000ms"]
+            direction LR
+            D1["Poll 3 topics<br/>12-50ms"]
+            D2["Anonymizer<br/>50-80ms"]
+            D3["Aggregator<br/>(10s window)<br/>80-10080ms"]
+            D4["Access Ctrl+Route<br/>10080-10120ms"]
+            D5["Produce 2 topics<br/>10120-10200ms"]
+            D1 --> D2 --> D3 --> D4 --> D5
+        end
+
+        subgraph KC_TIMING["🔗 Kafka Connect S3: Flush 10K msgs OR 1hr"]
+            K1["Poll topic<br/>10200-10250ms"]
+            K2["Batch buffer<br/>10250-46250ms"]
+            K3["S3 PutObject<br/>46250-46350ms"]
+            K1 --> K2 --> K3
+        end
+
+        INGEST --> MSK_TIMING
+        MSK_TIMING --> TO_TIMING
+        MSK_TIMING --> AD_TIMING
+        MSK_TIMING --> EO_TIMING
+        MSK_TIMING --> DB_TIMING
+        DB_TIMING --> KC_TIMING
+    end
+
+    subgraph SLO_PANEL["🎯 SLO Compliance Panel"]
+        direction TB
+
+        SLO_TARGETS["SLO Targets (p99)"]
+        TO_SLO["traffic-optimizer<br/>Target: <b>under 100ms</b><br/>Breach → SNS Warning"]
+        AD_SLO["anomaly-detector<br/>Target: <b>under 500ms</b><br/>Breach → SNS Warning"]
+        EO_SLO["energy-optimizer<br/>Target: <b>under 1,000ms</b><br/>Breach → SNS Warning"]
+        DB_SLO["data-broker<br/>Target: <b>under 2,000ms</b><br/>Breach → SNS Info"]
+        KC_SLO["Kafka Connect S3<br/>Target: <b>10K msgs OR 1hr</b>"]
+
+        SLO_METRICS["Prometheus Metrics"]
+        M_LAT["broker_processing_seconds<br/>Histogram buckets: 1ms to 30s"]
+        M_LAG["broker_consumer_lag{partition}<br/>Alert threshold: >1000 lag"]
+        M_AGE["broker_event_age_seconds<br/>Event time freshness"]
+        M_READ["broker_messages_read_total<br/>Throughput counter per topic"]
+        M_WRITE["broker_messages_written_total<br/>Throughput counter per topic"]
+
+        SLO_TARGETS --- TO_SLO
+        SLO_TARGETS --- AD_SLO
+        SLO_TARGETS --- EO_SLO
+        SLO_TARGETS --- DB_SLO
+        SLO_TARGETS --- KC_SLO
+        SLO_METRICS --- M_LAT
+        SLO_METRICS --- M_LAG
+        SLO_METRICS --- M_AGE
+        SLO_METRICS --- M_READ
+        SLO_METRICS --- M_WRITE
+    end
+
+    subgraph DLQ_PANEL["⚠️ Dead Letter Queue — dlq.all"]
+        direction TB
+
+        DLQ_IN["Failed messages from all 4 processors<br/>Broker lag spikes, serialization errors, processing failures"]
+
+        subgraph DLQ_CLASSES["Failure Classification"]
+            SCHEMA_ERR["<b>🔴 SchemaViolation</b><br/>Schema incompatible with<br/>BACKWARD / FORWARD_TRANSITIVE<br/>Action: Alert SNS-critical"]
+
+            DESER_ERR["<b>🟠 DeserializationError</b><br/>Corrupt AVRO bytes<br/>Action: Archive to S3 raw"]
+
+            TRANSIENT_ERR["<b>🟡 TransientError</b><br/>Network timeout, broker down<br/>Action: Retry 3x then DLQ"]
+
+            POISON_ERR["<b>⚫ PoisonPill</b><br/>Unprocessable payload<br/>Action: Archive + alert SNS"]
+        end
+
+        subgraph DLQ_PIPELINE["DLQ Processing"]
+            D_READ["dlq-processor reads dlq.all<br/>1 partition · ~10 msgs/s"]
+            D_CLASS["Classify by error_code<br/>header metadata"]
+            D_ARCHIVE["Archive to S3<br/>s3://agora-data-lake/dlq/<br/>partition: date/error_type"]
+            D_ALERT["Critical → SNS critical<br/>Warning → SNS warning"]
+            D_REPLAY["Re-route to original topic<br/>(manual approval gate)"]
+
+            D_READ --> D_CLASS
+            D_CLASS --> D_ARCHIVE
+            D_CLASS --> D_ALERT
+            D_CLASS --> D_REPLAY
+        end
+
+        DLQ_IN --> SCHEMA_ERR
+        DLQ_IN --> DESER_ERR
+        DLQ_IN --> TRANSIENT_ERR
+        DLQ_IN --> POISON_ERR
+        SCHEMA_ERR --> D_READ
+        DESER_ERR --> D_READ
+        TRANSIENT_ERR --> D_READ
+        POISON_ERR --> D_READ
+    end
+
+    subgraph FLUSH_CONFIG["Kafka Connect S3 Sink Configuration"]
+        direction LR
+        F_TRIG["<b>Flush Triggers</b><br/>1. 10,000 messages<br/>2. 1 hour window<br/>3. Idle timeout"]
+        F_FORMAT["<b>Output Format</b><br/>AVRO to JSON conversion<br/>Partitioned by event_date/hour<br/>topic=/kafka/raw"]
+        F_COMP["<b>Compression</b><br/>snappy codec<br/>Same as MSK topic config"]
+        F_BUCKET["<b>S3 Target</b><br/>agora-data-lake/raw/<br/>Lifecycle: 30d IA · 90d Glacier"]
+        F_TRIG --> F_FORMAT --> F_COMP --> F_BUCKET
+    end
+
+    subgraph SCHEMA_EVOLUTION["Schema Registry Compatibility Rules"]
+        direction TB
+        SR_DEF["<b>Default: BACKWARD</b><br/>New schema readers can read old data<br/>Adding optional fields: COMPATIBLE<br/>Removing fields: INCOMPATIBLE"]
+        SR_FWD["<b>alerts topic: FORWARD_TRANSITIVE</b><br/>Old consumers can read new data<br/>Adding fields: COMPATIBLE<br/>Changing types: INCOMPATIBLE"]
+        SR_EX["<b>Example Evolution:</b><br/>v1: {driver_id, speed, lat, lon}<br/>v2: {speed_bucket, lat, lon, vehicle_type}<br/>BACKWARD fails (removed driver_id)<br/>Use FORWARD_TRANSITIVE instead"]
+    end
+
+%% ========================================================================
+%% STYLING
+%% ========================================================================
+    classDef timeline fill:#1a2a3a,color:#fff,stroke:#3a5a7a,stroke-width:2px
+    classDef timing fill:#2a3a4a,color:#fff,stroke:#4a6a8a,stroke-width:1px
+    classDef step fill:#3a4a5a,color:#fff,stroke:#5a7a9a,stroke-width:1px
+    classDef sloHead fill:#1a3a5c,color:#fff,stroke:#3a6a9c,stroke-width:2px
+    classDef sloItem fill:#2a3a4a,color:#fff,stroke:#4a6a8a,stroke-width:1px
+    classDef metric fill:#2a4a3a,color:#fff,stroke:#4a7a5a,stroke-width:1px
+    classDef dlqHead fill:#5c1a1a,color:#fff,stroke:#8c3a3a,stroke-width:2px
+    classDef dlqErr fill:#4a2a2a,color:#fff,stroke:#7a4a4a,stroke-width:1px
+    classDef dlqProc fill:#3a2a2a,color:#fff,stroke:#6a4a4a,stroke-width:1px
+    classDef flush fill:#1a3a3a,color:#fff,stroke:#3a6a6a,stroke-width:2px
+    classDef schema fill:#2a2a4a,color:#fff,stroke:#5a5a8a,stroke-width:2px
+
+    class TIMELINE timeline
+    class INGEST,MSK_TIMING timing
+    class T1,T2,T3,A1,A2,A3,E1,E2,E3,D1,D2,D3,D4,D5,K1,K2,K3 step
+    class TO_TIMING,AD_TIMING,EO_TIMING,DB_TIMING,KC_TIMING timing
+    class SLO_TARGETS,TO_SLO,AD_SLO,EO_SLO,DB_SLO,KC_SLO sloItem
+    class SLO_METRICS,SLO_PANEL sloHead
+    class M_LAT,M_LAG,M_AGE,M_READ,M_WRITE metric
+    class DLQ_PANEL,DLQ_IN dlqHead
+    class SCHEMA_ERR,DESER_ERR,TRANSIENT_ERR,POISON_ERR dlqErr
+    class D_READ,D_CLASS,D_ARCHIVE,D_ALERT,D_REPLAY,DLQ_PIPELINE dlqProc
+    class FLUSH_CONFIG,F_TRIG,F_FORMAT,F_COMP,F_BUCKET flush
+    class SCHEMA_EVOLUTION,SR_DEF,SR_FWD,SR_EX schema

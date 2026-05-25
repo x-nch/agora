@@ -1,0 +1,7 @@
+resources:
+  - peer-authentication.yaml
+  - authorization-policy.yaml
+  - sidecar.yaml
+  - request-authentication.yaml
+  - telemetry.yaml
+  - mesh-config.yaml

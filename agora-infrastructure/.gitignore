@@ -1,0 +1,32 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+*.tfplan
+*.terraform.lock.hcl
+
+# Environment files with secrets
+terraform/environments/*/terraform.tfvars
+!terraform/environments/*/terraform.tfvars.example
+!terraform/terraform.tfvars.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scripts
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/

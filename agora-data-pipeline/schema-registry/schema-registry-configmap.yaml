@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: schema-registry-config
+  namespace: city-services
+  labels:
+    app: schema-registry
+    component: data-pipeline
+data:
+  SCHEMA_REGISTRY_COMPATIBILITY_GROUP: "agora"
+  SCHEMA_REGISTRY_AVRO_COMPATIBILITY: "BACKWARD"
+  SCHEMA_REGISTRY_KAFKASTORE_TOPIC: "_schemas_agora"
+  SCHEMA_REGISTRY_KAFKASTORE_GROUP_ID: "schema-registry-agora"
+  # Topic-level overrides applied via REST API at startup:
+  # incidents -> FORWARD_TRANSITIVE
+  # signal.commands -> BACKWARD (default)

@@ -1,0 +1,63 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Kubernetes
+kubeconfig*
+*.kubeconfig
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+*.cert
+
+# Docs build
+_site/
+.bundle/
+vendor/
+
+# Diagrams
+*.png
+*.svg
+
+# Temp
+tmp/
+temp/
+*.log
+
+# Audio
+*.wav

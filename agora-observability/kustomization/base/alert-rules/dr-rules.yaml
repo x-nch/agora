@@ -1,0 +1,109 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agora-dr-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: agora-dr-rules
+    interval: 30s
+    rules:
+    - alert: SafetyCriticalComponentDegraded
+      expr: |
+        (up{app="emergency-router"} == 0)
+        or
+        (up{app="emergency-dispatch"} == 0)
+      for: 5s
+      labels:
+        severity: critical
+        dr_tier: safety-critical
+        rto: "30s"
+      annotations:
+        summary: "Safety-critical component {{ $labels.app }} is down"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: CityOperationalSLOTracking
+      expr: |
+        (
+          1 - (
+            sum(rate(http_requests_total{namespace="city-services", status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{namespace="city-services"}[5m]))
+          )
+        ) < 0.999
+      for: 5m
+      labels:
+        severity: warning
+        dr_tier: city-operational
+        rto: "5m"
+      annotations:
+        summary: "City-operational SLO tracking — approaching error budget"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: PotentialAZFailure
+      expr: |
+        count(node_boot_time_seconds) by (topology_kubernetes_io_zone) < 2
+      for: 2m
+      labels:
+        severity: critical
+        dr_tier: infrastructure
+      annotations:
+        summary: "Potential AZ failure — only {{ $value }} nodes remaining in {{ $labels.topology_kubernetes_io_zone }}"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: TerraformStaleLock
+      expr: |
+        tf_lock_age_seconds > 900
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Terraform lock held for > 15 minutes — possible stale lock"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: StateBackupStale
+      expr: |
+        time() - dr_backup_timestamp_seconds > 90000
+      for: 5m
+      labels:
+        severity: warning
+        dr_tier: backup
+      annotations:
+        summary: "State backup age > 25 hours — backup may have failed"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: RTOBreachRisk
+      expr: |
+        (
+          sum(rate(http_requests_total{namespace="city-services", status=~"5.."}[1m]))
+          / sum(rate(http_requests_total{namespace="city-services"}[1m]))
+        ) > 0.05
+      for: 1m
+      labels:
+        severity: critical
+        dr_tier: city-operational
+      annotations:
+        summary: "5% error rate in city-services — RTO breach risk for safety-critical paths"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: KafkaBrokerCountLow
+      expr: |
+        count(kafka_broker_info) < 3
+      for: 1m
+      labels:
+        severity: critical
+        dr_tier: infrastructure
+      annotations:
+        summary: "MSK broker count below 3 — data durability at risk"
+        runbook: "docs/RUNBOOKS.md"
+
+    - alert: IstioMTLSFailureRate
+      expr: |
+        sum(rate(istio_requests_total{response_code=~"401|403|503", connection_security_policy="mutual_tls"}[5m]))
+        / sum(rate(istio_requests_total{connection_security_policy="mutual_tls"}[5m]))
+        > 0.01
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "mTLS failure rate > 1% — possible certificate or auth misconfiguration"
+        runbook: "docs/RUNBOOKS.md"

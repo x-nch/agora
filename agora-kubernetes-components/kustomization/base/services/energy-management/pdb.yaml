@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: energy-management
+  namespace: city-services
+  labels:
+    app.kubernetes.io/name: energy-management
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: energy-management

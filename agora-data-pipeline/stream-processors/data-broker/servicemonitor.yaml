@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: data-broker
+  labels:
+    app: data-broker
+spec:
+  selector:
+    matchLabels:
+      app: data-broker
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    any: true

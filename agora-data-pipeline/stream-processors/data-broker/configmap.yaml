@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-broker-config
+  labels:
+    app: data-broker
+data:
+  GROUP_ID: "data-broker-group"
+  LOG_LEVEL: "INFO"

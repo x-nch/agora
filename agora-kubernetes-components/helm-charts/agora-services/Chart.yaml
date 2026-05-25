@@ -1,0 +1,10 @@
+apiVersion: v2
+name: agora-services
+description: Agora microservices - traffic-optimizer, energy-management, data-broker, and api-gateway
+type: application
+version: 0.1.0
+appVersion: 1.0.0
+keywords:
+  - agora
+  - smart-city
+  - microservices

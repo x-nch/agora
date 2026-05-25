@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: data-broker
+  namespace: city-services
+  labels:
+    app.kubernetes.io/name: data-broker
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: data-broker

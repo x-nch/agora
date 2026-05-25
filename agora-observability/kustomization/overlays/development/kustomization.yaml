@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/
+patches:
+  - path: patches/loki-reduced-storage.yaml
+  - path: patches/prometheus-reduced-retention.yaml
+  - path: patches/alertmanager-single-replica.yaml

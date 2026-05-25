@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dlq-processor
+  namespace: city-services
+  labels:
+    app: dlq-processor
+    component: data-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dlq-processor
+  template:
+    metadata:
+      labels:
+        app: dlq-processor
+        component: data-pipeline
+    spec:
+      serviceAccountName: dlq-processor
+      containers:
+        - name: processor
+          image: agora/dlq-processor:latest
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: "b-1:9098,b-2:9098,b-3:9098"
+            - name: GROUP_ID
+              value: "dlq-processor-group"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: MAX_RETRIES
+              value: "3"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

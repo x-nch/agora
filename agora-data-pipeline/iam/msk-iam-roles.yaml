@@ -1,0 +1,167 @@
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: traffic-optimizer-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/vehicle.telemetry"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/signal.events"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/signal.commands"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/incidents"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: anomaly-detector-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/vehicle.telemetry"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/incidents"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/alerts.notifications"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: energy-optimizer-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/sensor.environmental"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/alerts.notifications"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: data-broker-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/vehicle.telemetry"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/sensor.environmental"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/signal.events"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/data.anonymized.vehicle"
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/data.inventor.traffic"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: kafka-connect-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+        Resource:
+          - "arn:aws:s3:::agora-prod-data-lake/*"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: schema-registry-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/_schemas_agora"
+---
+apiVersion: iam.services.k8s.aws/v1alpha1
+kind: Policy
+metadata:
+  name: dlq-processor-msk-policy
+spec:
+  policyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - kafka-cluster:Connect
+          - kafka-cluster:DescribeGroup
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:ReadData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/dlq.all"
+      - Effect: Allow
+        Action:
+          - kafka-cluster:WriteData
+        Resource:
+          - "arn:aws:kafka:ap-northeast-1:ACCOUNT_ID:topic/agora-cluster/alerts.notifications"

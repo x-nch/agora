@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: agora-routing
+  namespace: monitoring
+  labels:
+    agora.io/alertmanager-config: "true"
+spec:
+  route:
+    groupBy:
+      - alertname
+      - severity
+      - namespace
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    receiver: slack-warning
+    routes:
+      - matchers:
+          - name: severity
+            value: critical
+        receiver: pagerduty-critical
+        repeatInterval: 2h
+      - matchers:
+          - name: severity
+            value: info
+        receiver: "null"
+  receivers:
+    - name: "null"
+    - name: pagerduty-critical
+      pagerdutyConfigs:
+        - routingKey:
+            name: alertmanager-secret
+            key: pagerduty-routing-key
+    - name: slack-warning
+      slackConfigs:
+        - apiURL:
+            name: alertmanager-secret
+            key: slack-webhook-url
+          channel: "#agora-alerts"
+          sendResolved: true

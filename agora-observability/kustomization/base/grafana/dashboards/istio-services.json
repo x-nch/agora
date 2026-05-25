@@ -1,0 +1,60 @@
+{
+  "title": "Istio Service Mesh",
+  "version": 1,
+  "uid": "istio-services",
+  "panels": [
+    {
+      "title": "mTLS Handshake Success Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{connection_security_policy=\"mutual_tls\",response_code!~\"5..\"}[5m])) / sum(rate(istio_requests_total{connection_security_policy=\"mutual_tls\"}[5m]))",
+          "legendFormat": "mTLS success rate"
+        }
+      ]
+    },
+    {
+      "title": "Requests by Source Namespace",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{reporter=\"source\"}[5m])) by (source_namespace, destination_namespace)",
+          "legendFormat": "{{source_namespace}} → {{destination_namespace}}"
+        }
+      ]
+    },
+    {
+      "title": "Authorization Policy Denies",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(istio_requests_total{response_code=\"403\"}[5m])) by (destination_service, source_principal)",
+          "legendFormat": "denied: {{destination_service}} <- {{source_principal}}"
+        }
+      ]
+    },
+    {
+      "title": "TCP Throughput by Namespace",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(istio_tcp_sent_bytes_total[5m])) by (source_namespace, destination_namespace)",
+          "legendFormat": "{{source_namespace}} → {{destination_namespace}}"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "type": "query",
+        "query": "label_values(istio_requests_total, source_namespace)"
+      }
+    ]
+  }
+}

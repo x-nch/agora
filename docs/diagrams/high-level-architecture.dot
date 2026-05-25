@@ -1,0 +1,196 @@
+digraph AgoraHighLevel {
+  rankdir=TB;
+  splines=ortho;
+  nodesep=0.4;
+  ranksep=0.5;
+  bgcolor="#0f172a";
+  fontname="Helvetica";
+  fontcolor="white";
+  label="Agora Platform — High-Level Architecture";
+  labelloc=t;
+  labeljust=l;
+  fontsize=28;
+  pad=0.5;
+
+  node [shape=box, style=filled, fillcolor="#1e293b", fontcolor="white", fontname="Helvetica", fontsize=11, penwidth=2, color="#334155"];
+  edge [color="#475569", penwidth=1.5];
+
+  // ─── Layer 1: Physical Devices ───
+  subgraph cluster_layer1 {
+    label="Layer 1: Physical Devices (10,000+)";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    devices [shape=plain, label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="6" BGCOLOR="#0f172a">
+        <TR><TD BGCOLOR="#1e293b" PORT="vehicles"><B>Vehicles</B><BR/>500-1,000 AVs<BR/>10Hz telemetry</TD></TR>
+        <TR><TD BGCOLOR="#1e293b" PORT="sensors"><B>Sensors</B><BR/>10,000+ IoT<BR/>Env, traffic, buildings</TD></TR>
+        <TR><TD BGCOLOR="#1e293b" PORT="signals"><B>Traffic Signals</B><BR/>Smart intersections<BR/>V2X capable</TD></TR>
+        <TR><TD BGCOLOR="#1e293b" PORT="buildings"><B>Buildings</B><BR/>HVAC, energy,<BR/>occupancy</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  // ─── Layer 2: Device Integration ───
+  subgraph cluster_layer2 {
+    label="Layer 2: Device Integration (Edge)";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    edge_gateway [label="IoT Gateway\n(on EKS)\nmTLS Auth\nSchema Validation\nBuffering", fillcolor="#1e3a5f", color="#2563eb"];
+    edge_nodes [label="Edge Nodes\n<50ms Local Decisions\nTraffic Signal Control\nFallback Safe Mode", fillcolor="#1e3a5f", color="#2563eb"];
+  }
+
+  // ─── Layer 3: Data Ingestion ───
+  subgraph cluster_layer3 {
+    label="Layer 3: Data Ingestion (Real-Time)";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    msk_cluster [label="Amazon MSK Express\n3 Brokers × express.m7g.large\n60K+ events/sec\n<15ms latency\nIAM Access Control", fillcolor="#3b0764", color="#9333ea"];
+    topics [shape=plain, label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+        <TR><TD BGCOLOR="#3b0764" PORT="t1"><B>vehicle.telemetry</B><BR/>10K+ msg/sec / 12 partitions</TD></TR>
+        <TR><TD BGCOLOR="#3b0764" PORT="t2"><B>sensor.environmental</B><BR/>5K+ msg/sec / 6 partitions</TD></TR>
+        <TR><TD BGCOLOR="#3b0764" PORT="t3"><B>signal.events</B><BR/>2K+ msg/sec / 6 partitions</TD></TR>
+        <TR><TD BGCOLOR="#3b0764" PORT="t4"><B>incidents</B><BR/>100 msg/sec / 1 partition</TD></TR>
+      </TABLE>
+    >];
+  }
+
+  // ─── Layer 4: Stream Processing ───
+  subgraph cluster_layer4 {
+    label="Layer 4: Real-Time Processing";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    traffic_opt [label="Traffic Optimizer\n<100ms SLO\n3-10 pods\nSignal Command Routing", fillcolor="#3b0764", color="#a855f7"];
+    anomaly_det [label="Anomaly Detector\nML Inference\nIncident Detection\nSafety Notifications", fillcolor="#3b0764", color="#a855f7"];
+    energy_opt [label="Energy Optimizer\n<1s SLO\nHVAC Control\nGrid Optimization", fillcolor="#3b0764", color="#a855f7"];
+    data_broker [label="Data Broker\nAnonymization\nPII Stripping\nAccess Control\n60K+ msg/sec", fillcolor="#3b0764", color="#a855f7"];
+  }
+
+  // ─── Layer 5: Data Storage ───
+  subgraph cluster_layer5 {
+    label="Layer 5: Data Storage & Federation";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    timestream [label="Amazon Timestream\nTime-Series Metrics\nSpeed, Temp, Energy\nRange Queries", fillcolor="#1a2e1a", color="#22c55e"];
+    aurora [label="Aurora PostgreSQL\nTransactional Data\nDevice Registry\nService State\nMulti-AZ", fillcolor="#1a2e1a", color="#22c55e"];
+    s3_lake [label="S3 Data Lake\nRaw Archive (7d)\nProcessed Analytics\nInventor Buckets\nLifecycle → Glacier", fillcolor="#1a2e1a", color="#22c55e"];
+    elasticache [label="ElastiCache Redis\nRate-Limiting Counters\nReal-Time Aggregation\nSession State", fillcolor="#1a2e1a", color="#22c55e"];
+  }
+
+  // ─── Layer 6: API & Services ───
+  subgraph cluster_layer6 {
+    label="Layer 6: Microservices & API Gateway";
+    labelloc=t;
+    fontsize=16;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    api_gw [label="API Gateway\n(on EKS)\nAuth / Rate Limiting\nRouting / Quota Enforce\n100+ Inventor APIs", fillcolor="#4a1a1a", color="#ef4444"];
+    services [shape=plain, label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+        <TR>
+          <TD BGCOLOR="#4a1a1a"><B>Traffic</B><BR/>30+ svc</TD>
+          <TD BGCOLOR="#4a1a1a"><B>Energy</B><BR/>15+ svc</TD>
+          <TD BGCOLOR="#4a1a1a"><B>Payment</B><BR/>20+ svc</TD>
+          <TD BGCOLOR="#4a1a1a"><B>Mobility</B><BR/>25+ svc</TD>
+        </TR>
+        <TR>
+          <TD BGCOLOR="#4a1a1a"><B>Safety</B><BR/>10+ svc</TD>
+          <TD BGCOLOR="#4a1a1a"><B>Wellness</B><BR/>5+ svc</TD>
+          <TD BGCOLOR="#4a1a1a" COLSPAN="2"><B>Inventor APIs</B><BR/>External ecosystem</TD>
+        </TR>
+      </TABLE>
+    >];
+  }
+
+  // ─── Monitoring (cross-cutting) ───
+  subgraph cluster_monitoring {
+    label="Cross-Cutting: Observability";
+    labelloc=t;
+    fontsize=14;
+    fontcolor="#94a3b8";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=12;
+
+    cloudwatch [label="CloudWatch\nDashboards + Alarms\nVPC Flow Logs\nBilling Alerts", fillcolor="#292524", color="#78716c"];
+    amp [label="AMP\nPrometheus Metrics\nRule Evaluation\nLong-Term Storage", fillcolor="#292524", color="#78716c"];
+    sns [label="SNS\nCritical / Warning / Info\nPagerDuty / Slack\nEmail Escalation", fillcolor="#292524", color="#78716c"];
+    grafana [label="Grafana\nUnified Dashboards\nTraffic / Energy / Health\nMulti-Tenant", fillcolor="#292524", color="#78716c"];
+  }
+
+  // ─── Edges ───
+  devices:vehicles -> edge_gateway [color="#60a5fa", penwidth=2];
+  devices:sensors  -> edge_gateway [color="#60a5fa", penwidth=2];
+  devices:signals  -> edge_gateway [color="#60a5fa", penwidth=2];
+  devices:buildings -> edge_gateway [color="#60a5fa", penwidth=2];
+  devices:signals  -> edge_nodes [color="#fbbf24", penwidth=1.5, style=dashed, label="V2X direct"];
+
+  edge_gateway -> msk_cluster [color="#a855f7", penwidth=2, label="mTLS → Kafka IAM (port 9098)"];
+  edge_nodes -> msk_cluster [color="#a855f7", penwidth=1.5, style=dashed, label="sync every 100ms"];
+
+  msk_cluster -> topics [color="#a855f7", penwidth=1.5];
+  topics:t1 -> traffic_opt [color="#c084fc", penwidth=1.5];
+  topics:t2 -> energy_opt [color="#c084fc", penwidth=1.5];
+  topics:t3 -> traffic_opt [color="#c084fc", penwidth=1.5];
+  topics:t1 -> anomaly_det [color="#c084fc", penwidth=1.5];
+  topics:t1 -> data_broker [color="#c084fc", penwidth=2, label="all 60K msg/sec"];
+  topics:t2 -> data_broker [color="#c084fc", penwidth=1.5];
+  topics:t3 -> data_broker [color="#c084fc", penwidth=1.5];
+
+  traffic_opt -> msk_cluster [color="#fbbf24", penwidth=1.5, style=dashed, label="signal.commands"];
+  anomaly_det -> msk_cluster [color="#fbbf24", penwidth=1.5, style=dashed, label="alerts.notifications"];
+  data_broker -> msk_cluster [color="#22c55e", penwidth=1.5, style=dashed, label="data.anonymized.*"];
+  data_broker -> s3_lake [color="#22c55e", penwidth=1.5, label="S3 data lake"];
+
+  traffic_opt -> timestream [color="#22c55e", penwidth=1, style=dotted];
+  anomaly_det -> aurora [color="#22c55e", penwidth=1, style=dotted];
+
+  // Layer 6 connections
+  services -> api_gw [color="#ef4444", penwidth=1.5, dir=both];
+  api_gw -> data_broker [color="#ef4444", penwidth=1.5];
+  api_gw -> traffic_opt [color="#ef4444", penwidth=1.5];
+  api_gw -> energy_opt [color="#ef4444", penwidth=1.5];
+  api_gw -> aurora [color="#ef4444", penwidth=1, style=dotted];
+
+  // Monitoring (dashed, light)
+  cloudwatch -> msk_cluster [color="#78716c", penwidth=0.8, style=dotted];
+  cloudwatch -> aurora [color="#78716c", penwidth=0.8, style=dotted];
+  cloudwatch -> api_gw [color="#78716c", penwidth=0.8, style=dotted];
+  amp -> grafana [color="#78716c", penwidth=1];
+  sns -> cloudwatch [color="#78716c", penwidth=1];
+}

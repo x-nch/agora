@@ -1,0 +1,286 @@
+digraph AgoraAWSInfra {
+  rankdir=TB;
+  splines=ortho;
+  nodesep=0.3;
+  ranksep=0.35;
+  bgcolor="#0f172a";
+  fontname="Helvetica";
+  fontcolor="white";
+  label="Agora Platform — AWS Infrastructure";
+  labelloc=t;
+  labeljust=l;
+  fontsize=28;
+  pad=0.5;
+  newrank=true;
+
+  node [shape=box, style=filled, fillcolor="#1e293b", fontcolor="white", fontname="Helvetica", fontsize=10, penwidth=1.5, color="#334155"];
+  edge [color="#475569", penwidth=1.5];
+
+  // ─── Region ───
+  subgraph cluster_region {
+    label="AWS Region: ap-northeast-1 (Tokyo)";
+    labelloc=t;
+    fontsize=18;
+    fontcolor="#f8fafc";
+    style=filled;
+    fillcolor="#0f172a";
+    color="#1e293b";
+    margin=15;
+
+    // ─── VPC ───
+    subgraph cluster_vpc {
+      label="VPC: 10.0.0.0/16";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#93c5fd";
+      style=filled;
+      fillcolor="#0c1929";
+      color="#1e3a5f";
+      margin=12;
+
+      // ─── AZ A ───
+      subgraph cluster_aza {
+        label="AZ A — ap-northeast-1a";
+        labelloc=t;
+        fontsize=12;
+        fontcolor="#60a5fa";
+        style=filled;
+        fillcolor="#0f172a";
+        color="#1e3a5f";
+        margin=8;
+
+        pub_a [label="Public Subnet A\n10.0.1.0/24\nNAT GW A | ALB", fillcolor="#1e3a5f", color="#3b82f6"];
+        priv_a [label="Private Subnet A\n10.0.11.0/24\nEKS Nodes | MSK", fillcolor="#3b0764", color="#a855f7"];
+        db_a   [label="DB Subnet A\n10.0.21.0/24\nAurora Writer", fillcolor="#1a2e1a", color="#22c55e"];
+      }
+
+      // ─── AZ C ───
+      subgraph cluster_azc {
+        label="AZ C — ap-northeast-1c";
+        labelloc=t;
+        fontsize=12;
+        fontcolor="#60a5fa";
+        style=filled;
+        fillcolor="#0f172a";
+        color="#1e3a5f";
+        margin=8;
+
+        pub_c [label="Public Subnet C\n10.0.2.0/24\nNAT GW C | ALB", fillcolor="#1e3a5f", color="#3b82f6"];
+        priv_c [label="Private Subnet C\n10.0.12.0/24\nEKS Nodes | MSK", fillcolor="#3b0764", color="#a855f7"];
+        db_c   [label="DB Subnet C\n10.0.22.0/24\nAurora Reader", fillcolor="#1a2e1a", color="#22c55e"];
+      }
+
+      // ─── AZ D ───
+      subgraph cluster_azd {
+        label="AZ D — ap-northeast-1d";
+        labelloc=t;
+        fontsize=12;
+        fontcolor="#60a5fa";
+        style=filled;
+        fillcolor="#0f172a";
+        color="#1e3a5f";
+        margin=8;
+
+        pub_d [label="Public Subnet D\n10.0.3.0/24\nNAT GW D | ALB", fillcolor="#1e3a5f", color="#3b82f6"];
+        priv_d [label="Private Subnet D\n10.0.13.0/24\nEKS Nodes | MSK", fillcolor="#3b0764", color="#a855f7"];
+        db_d   [label="DB Subnet D\n10.0.23.0/24\nAurora Reader", fillcolor="#1a2e1a", color="#22c55e"];
+      }
+
+      // ─── VPC Endpoints (inside VPC, spanning all AZs) ───
+      vpc_endpoints [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#292524" COLSPAN="2"><B>VPC Endpoints (Gateway + Interface)</B></TD></TR>
+          <TR><TD BGCOLOR="#292524">S3 Gateway</TD><TD BGCOLOR="#292524">DynamoDB Gateway</TD></TR>
+          <TR><TD BGCOLOR="#292524">ECR API</TD><TD BGCOLOR="#292524">ECR DKR</TD></TR>
+          <TR><TD BGCOLOR="#292524">STS</TD><TD BGCOLOR="#292524">EKS</TD></TR>
+          <TR><TD BGCOLOR="#292524">CloudWatch</TD><TD BGCOLOR="#292524">Secrets Manager</TD></TR>
+        </TABLE>
+      >];
+    }
+
+    // ─── EKS Cluster ───
+    subgraph cluster_eks {
+      label="Amazon EKS";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#c084fc";
+      style=filled;
+      fillcolor="#1a0a2e";
+      color="#581c87";
+      margin=8;
+
+      eks_cp [label="Control Plane\n(KMS Encrypted)\nAudit / API / Auth / CM / Sched logs", fillcolor="#3b0764", color="#a855f7"];
+
+      ng_system [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="3" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#3b0764" COLSPAN="2"><B>System Node Group</B><BR/>m7g.xlarge × 3 (on-demand)</TD></TR>
+          <TR><TD BGCOLOR="#3b0764">CoreDNS</TD><TD BGCOLOR="#3b0764">kube-proxy</TD></TR>
+          <TR><TD BGCOLOR="#3b0764">vpc-cni</TD><TD BGCOLOR="#3b0764">EBS CSI</TD></TR>
+          <TR><TD BGCOLOR="#3b0764">Cluster Autoscaler</TD><TD BGCOLOR="#3b0764">ALB Controller</TD></TR>
+        </TABLE>
+      >];
+
+      ng_app [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="3" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#4a1a1a" COLSPAN="3"><B>Application Node Group</B><BR/>m7g.2xlarge × 5-30 (spot + on-demand)</TD></TR>
+          <TR>
+            <TD BGCOLOR="#4a1a1a">Traffic Opt.</TD>
+            <TD BGCOLOR="#4a1a1a">Energy Mgr</TD>
+            <TD BGCOLOR="#4a1a1a">Anomaly Det.</TD>
+          </TR>
+          <TR>
+            <TD BGCOLOR="#4a1a1a">Data Broker</TD>
+            <TD BGCOLOR="#4a1a1a">API Gateway</TD>
+            <TD BGCOLOR="#4a1a1a">IoT Gateway</TD>
+          </TR>
+        </TABLE>
+      >];
+    }
+
+    // ─── MSK ───
+    subgraph cluster_msk {
+      label="Amazon MSK Express";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#c084fc";
+      style=filled;
+      fillcolor="#1a0a2e";
+      color="#581c87";
+      margin=8;
+
+      msk_brokers [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#3b0764" COLSPAN="3"><B>3 × express.m7g.xlarge</B></TD></TR>
+          <TR>
+            <TD BGCOLOR="#3b0764">Broker 1<BR/>AZ A</TD>
+            <TD BGCOLOR="#3b0764">Broker 2<BR/>AZ C</TD>
+            <TD BGCOLOR="#3b0764">Broker 3<BR/>AZ D</TD>
+          </TR>
+          <TR><TD BGCOLOR="#292524" COLSPAN="3">IAM Auth (port 9098) | TLS | KMS<BR/>Enhanced Monitoring | CW Logs<BR/>Replication Factor: 3</TD></TR>
+        </TABLE>
+      >];
+    }
+
+    // ─── Aurora ───
+    subgraph cluster_aurora {
+      label="Aurora PostgreSQL";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#4ade80";
+      style=filled;
+      fillcolor="#0a1a0a";
+      color="#166534";
+      margin=8;
+
+      aurora_instances [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#1a2e1a" COLSPAN="3"><B>Aurora Cluster: agora-prod</B></TD></TR>
+          <TR>
+            <TD BGCOLOR="#166534"><B>Writer</B><BR/>db.r6g.xlarge<BR/>AZ A</TD>
+            <TD BGCOLOR="#1a2e1a"><B>Reader 1</B><BR/>db.r6g.xlarge<BR/>AZ C</TD>
+            <TD BGCOLOR="#1a2e1a"><B>Reader 2</B><BR/>db.r6g.xlarge<BR/>AZ D</TD>
+          </TR>
+          <TR><TD BGCOLOR="#292524" COLSPAN="3">KMS Encrypted | Auto-Scaling Storage<BR/>Performance Insights | Backup 30d<BR/>Secrets Manager Rotation</TD></TR>
+        </TABLE>
+      >];
+    }
+
+    // ─── S3 (global, outside VPC but accessible via endpoint) ───
+    s3_buckets [shape=plain, label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="4" BGCOLOR="#0f172a">
+        <TR><TD BGCOLOR="#1a2e1a" COLSPAN="2"><B>Amazon S3 (via Gateway Endpoint)</B></TD></TR>
+        <TR><TD BGCOLOR="#1a2e1a"><B>data-lake</B><BR/>Raw + processed + inventor data<BR/>KMS | Versioning | Lifecycle → Glacier</TD>
+            <TD BGCOLOR="#1a2e1a"><B>app-logs</B><BR/>CloudTrail, VPC flow logs, ALB<BR/>Retention: 7d → Glacier → 1yr delete</TD></TR>
+        <TR><TD BGCOLOR="#1a2e1a"><B>access-logs</B><BR/>S3 server access logs<BR/>Security auditing | 7yr retention</TD>
+            <TD BGCOLOR="#1a2e1a"><B>backups</B><BR/>Terraform state + RDS exports<BR/>Cross-region replication (DR)</TD></TR>
+      </TABLE>
+    >];
+
+    // ─── Monitoring (side) ───
+    subgraph cluster_mon {
+      label="Monitoring & Observability";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#a8a29e";
+      style=filled;
+      fillcolor="#1c1917";
+      color="#44403c";
+      margin=8;
+
+      cw [label="CloudWatch\nDashboards + Alarms\nLog Groups (KMS)", fillcolor="#292524", color="#78716c"];
+      sns [label="SNS Topics\nCritical / Warning / Info\n→ PagerDuty / Slack", fillcolor="#292524", color="#78716c"];
+      amp [label="AMP Workspace\nPrometheus Metrics\nRule Evaluation", fillcolor="#292524", color="#78716c"];
+    }
+
+    // ─── IAM (side) ───
+    subgraph cluster_iam {
+      label="IAM & Security";
+      labelloc=t;
+      fontsize=14;
+      fontcolor="#a8a29e";
+      style=filled;
+      fillcolor="#1c1917";
+      color="#44403c";
+      margin=8;
+
+      iam_roles [shape=plain, label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="2" CELLPADDING="3" BGCOLOR="#0f172a">
+          <TR><TD BGCOLOR="#292524"><B>EKS Cluster Role</B></TD></TR>
+          <TR><TD BGCOLOR="#292524"><B>Node Instance Role</B><BR/>SSM + EBS + ECR</TD></TR>
+          <TR><TD BGCOLOR="#292524"><B>IRSA Roles (per service)</B></TD></TR>
+          <TR><TD BGCOLOR="#292524"><B>MSK Service Role</B></TD></TR>
+          <TR><TD BGCOLOR="#292524"><B>RDS Monitoring Role</B></TD></TR>
+        </TABLE>
+      >];
+      kms [label="KMS CMK\nSingle key per env\nEKS + RDS + MSK + S3", fillcolor="#292524", color="#78716c"];
+    }
+  }
+
+  // ─── Inter-AZ Connections ───
+  pub_a -> igw [style=invis];
+  igw [label="Internet Gateway", fillcolor="#1e3a5f", color="#3b82f6"];
+
+  // Edges: AZ placement for EKS
+  priv_a -> eks_cp [color="#a855f7", penwidth=1.5];
+  priv_c -> eks_cp [color="#a855f7", penwidth=1.5];
+  priv_d -> eks_cp [color="#a855f7", penwidth=1.5];
+
+  // Edges: MSK in private subnets
+  priv_a -> msk_brokers [color="#a855f7", penwidth=1.5];
+  priv_c -> msk_brokers [color="#a855f7", penwidth=1.5];
+  priv_d -> msk_brokers [color="#a855f7", penwidth=1.5];
+
+  // Edges: Aurora in DB subnets
+  db_a -> aurora_instances [color="#22c55e", penwidth=1.5];
+  db_c -> aurora_instances [color="#22c55e", penwidth=1.5];
+  db_d -> aurora_instances [color="#22c55e", penwidth=1.5];
+
+  // EKS to services
+  ng_system -> eks_cp [color="#a855f7", penwidth=1, dir=both];
+  ng_app -> eks_cp [color="#a855f7", penwidth=1, dir=both];
+
+  // S3 endpoint
+  vpc_endpoints -> s3_buckets [color="#22c55e", penwidth=1, style=dashed, label="S3 Gateway Endpoint"];
+
+  // Monitoring connections
+  cw -> msk_brokers [color="#78716c", penwidth=0.8, style=dotted];
+  cw -> aurora_instances [color="#78716c", penwidth=0.8, style=dotted];
+  cw -> eks_cp [color="#78716c", penwidth=0.8, style=dotted];
+  amp -> cw [color="#78716c", penwidth=0.8];
+  sns -> cw [color="#78716c", penwidth=1];
+
+  // KMS connections
+  kms -> aurora_instances [color="#fbbf24", penwidth=0.8, style=dotted, label="encrypts"];
+  kms -> msk_brokers [color="#fbbf24", penwidth=0.8, style=dotted];
+  kms -> s3_buckets [color="#fbbf24", penwidth=0.8, style=dotted];
+  kms -> eks_cp [color="#fbbf24", penwidth=0.8, style=dotted];
+
+  // IAM
+  iam_roles -> eks_cp [color="#fbbf24", penwidth=0.8, style=dotted];
+  iam_roles -> ng_app [color="#fbbf24", penwidth=0.8, style=dotted];
+
+  // External
+  igw -> pub_a [color="#3b82f6", penwidth=1.5];
+  igw -> pub_c [color="#3b82f6", penwidth=1.5];
+  igw -> pub_d [color="#3b82f6", penwidth=1.5];
+}

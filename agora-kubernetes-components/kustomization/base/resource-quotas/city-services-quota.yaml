@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: city-services-quota
+  namespace: city-services
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    persistentvolumeclaims: "10"
+    count/deployments.apps: "20"
+    count/services: "20"
+    count/secrets: "40"
+    count/configmaps: "40"

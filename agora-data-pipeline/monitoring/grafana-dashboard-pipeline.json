@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "Agora Data Pipeline",
+    "version": 1,
+    "panels": [
+      {
+        "title": "Throughput by Topic",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(kafka_topic_bytes_in_total{topic=~\"vehicle.telemetry|sensor.environmental|signal.events|incidents\"}[5m])) by (topic)",
+            "legendFormat": "{{ topic }}"
+          }
+        ]
+      },
+      {
+        "title": "Consumer Lag",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "kafka_consumer_lag",
+            "legendFormat": "{{ group }} - {{ topic }}"
+          }
+        ]
+      },
+      {
+        "title": "Processing Latency P99",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(processing_latency_seconds_bucket[5m])) by (service)",
+            "legendFormat": "{{ service }}"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate by Service",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(processing_errors_total[5m]) by (service)",
+            "legendFormat": "{{ service }}"
+          }
+        ]
+      },
+      {
+        "title": "DLQ Depth",
+        "type": "singlestat",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(kafka_topic_offset{topic=\"dlq.all\"}) - sum(kafka_consumer_offset{topic=\"dlq.all\",group=\"dlq-processor\"})"
+          }
+        ]
+      },
+      {
+        "title": "Anomaly Score Distribution",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(anomaly_scores_total[5m]) by (severity)",
+            "legendFormat": "{{ severity }}"
+          }
+        ]
+      },
+      {
+        "title": "Kafka Connect Task Status",
+        "type": "table",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "kafka_connect_task_status",
+            "legendFormat": "{{ connector }} - {{ task_id }}: {{ status }}"
+          }
+        ]
+      },
+      {
+        "title": "Signal Commands per Intersection",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(signal_commands_total[5m]) by (intersection_id)",
+            "legendFormat": "{{ intersection_id }}"
+          }
+        ]
+      }
+    ],
+    "tags": ["agora", "pipeline", "kafka"],
+    "timezone": "Asia/Tokyo"
+  }
+}

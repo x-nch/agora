@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detector
+  namespace: city-services
+  labels:
+    app: anomaly-detector
+    component: stream-processor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: anomaly-detector
+  template:
+    metadata:
+      labels:
+        app: anomaly-detector
+        component: stream-processor
+    spec:
+      serviceAccountName: anomaly-detector
+      containers:
+        - name: anomaly-detector
+          image: city-services/anomaly-detector:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: metrics
+          envFrom:
+            - configMapRef:
+                name: anomaly-detector-config
+          env:
+            - name: BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-credentials
+                  key: bootstrap-servers
+            - name: SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-credentials
+                  key: sasl-username
+            - name: SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-credentials
+                  key: sasl-password
+            - name: SCHEMA_REGISTRY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-credentials
+                  key: schema-registry-url
+            - name: AWS_MSK_IAM_ENABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3

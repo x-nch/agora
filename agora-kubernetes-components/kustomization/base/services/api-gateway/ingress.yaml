@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway
+  namespace: city-services
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  ingressClassName: alb
+  rules:
+    - host: api.agora.example.com
+      http:
+        paths:
+          - path: /api/v1/traffic
+            pathType: Prefix
+            backend:
+              service:
+                name: traffic-optimizer
+                port:
+                  number: 8080
+          - path: /api/v1/energy
+            pathType: Prefix
+            backend:
+              service:
+                name: energy-management
+                port:
+                  number: 8080
+          - path: /api/v1/data
+            pathType: Prefix
+            backend:
+              service:
+                name: data-broker
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080

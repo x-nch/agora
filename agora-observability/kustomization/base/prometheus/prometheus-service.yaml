@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-operated
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+      name: web
+  selector:
+    app.kubernetes.io/name: prometheus

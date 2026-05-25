@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-broker
+  namespace: city-services
+  labels:
+    app.kubernetes.io/name: data-broker
+    app.kubernetes.io/component: core-service
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: data-broker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: data-broker
+        app.kubernetes.io/component: core-service
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      priorityClassName: agora-critical
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: data-broker
+                topologyKey: topology.kubernetes.io/zone
+      containers:
+        - name: data-broker
+          image: agora/data-broker:v1.0.0
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: http
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms2g -Xmx4g"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "agora-msk-cluster.aws:9098"
+            - name: KAFKA_CONSUMER_GROUP
+              value: "agora-data-broker"
+          resources:
+            requests:
+              cpu: 2
+              memory: 2Gi
+            limits:
+              cpu: 4
+              memory: 4Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 60
+      serviceAccountName: data-broker-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault

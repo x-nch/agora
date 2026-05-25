@@ -1,0 +1,22 @@
+{
+  "type": "record",
+  "name": "VehicleTelemetry",
+  "namespace": "agora.telemetry",
+  "doc": "Real-time vehicle telemetry from IoT gateways",
+  "fields": [
+    {"name": "vehicle_id", "type": "string", "doc": "Unique vehicle identifier"},
+    {"name": "vehicle_type", "type": {"type": "enum", "name": "VehicleType", "symbols": ["autonomous", "regular", "emergency", "public_transport", "micro_mobility"]}},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "gps_lat", "type": "double"},
+    {"name": "gps_lng", "type": "double"},
+    {"name": "speed_kmh", "type": "float"},
+    {"name": "heading_degrees", "type": "float"},
+    {"name": "acceleration_x", "type": "float"},
+    {"name": "acceleration_y", "type": "float"},
+    {"name": "acceleration_z", "type": "float"},
+    {"name": "battery_level", "type": ["null", "float"], "default": null},
+    {"name": "occupancy", "type": ["null", "int"], "default": null},
+    {"name": "district", "type": {"type": "enum", "name": "District", "symbols": ["mobility", "living", "working", "wellness", "innovation"]}},
+    {"name": "event_type", "type": {"type": "enum", "name": "EventType", "symbols": ["periodic", "emergency_brake", "collision_risk", "lane_departure", "entering_zone", "leaving_zone"]}, "default": "periodic"}
+  ]
+}

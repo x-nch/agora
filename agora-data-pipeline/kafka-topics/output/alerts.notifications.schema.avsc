@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "AlertNotification",
+  "namespace": "agora.alerts",
+  "doc": "Alert notifications for city operators and automated response systems",
+  "fields": [
+    {"name": "alert_id", "type": {"type": "string", "logicalType": "uuid"}},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "alert_type", "type": {"type": "enum", "name": "AlertType", "symbols": ["traffic_congestion", "emergency_vehicle", "environmental_warning", "infrastructure_fault", "security_alert", "energy_critical", "system_health"]}},
+    {"name": "severity", "type": "agora.incidents.Severity"},
+    {"name": "title", "type": "string"},
+    {"name": "message", "type": "string"},
+    {"name": "source_service", "type": "string"},
+    {"name": "district", "type": ["null", "agora.telemetry.District"], "default": null},
+    {"name": "related_incident_id", "type": ["null", "string"], "default": null},
+    {"name": "affected_entities", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "ttl_seconds", "type": "int", "default": 3600},
+    {"name": "acknowledged", "type": "boolean", "default": false},
+    {"name": "metadata", "type": ["null", {"type": "map", "values": "string"}], "default": null}
+  ]
+}

@@ -1,0 +1,5 @@
+confluent-kafka[avro]
+fastavro
+numpy
+prometheus_client
+scikit-learn

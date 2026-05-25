@@ -1,0 +1,73 @@
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: city-services
+spec:
+  {}
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: traffic-optimizer-policy
+  namespace: city-services
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traffic-optimizer
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/city-services/sa/default"
+        - "cluster.local/ns/monitoring/sa/prometheus-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/api/*", "/metrics"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: data-broker-policy
+  namespace: city-services
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: data-broker
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/city-services/sa/energy-management"
+        - "cluster.local/ns/city-services/sa/traffic-optimizer"
+        - "cluster.local/ns/monitoring/sa/prometheus-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/api/*", "/metrics"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: public-api-policy
+  namespace: city-services
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["inventors"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/v1/public/*"]
+  - from:
+    - source:
+        namespaces: ["city-services"]

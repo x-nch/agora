@@ -1,0 +1,27 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: inventor-restricted
+  namespace: inventors
+spec:
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+  egress:
+    - hosts:
+        - "city-services/api-gateway.city-services.svc.cluster.local"
+        - "istio-system/*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: city-service-internal
+  namespace: city-services
+spec:
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+  egress:
+    - hosts:
+        - "city-services/*"
+        - "monitoring/*"
+        - "istio-system/*"

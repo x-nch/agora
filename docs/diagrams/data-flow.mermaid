@@ -1,0 +1,129 @@
+sequenceDiagram
+    %% End-to-End Data Flow: IoT Device → Processing → Storage → API
+    %% 60K+ events/sec · 9 Kafka topics · 4 stream processors
+    %% ========================================================================
+    %% PARTICIPANTS
+    %% ========================================================================
+    participant IoT as IoT Device
+    participant GW as IoT Gateway
+    participant MSK as "MSK Express (3 brokers)"
+    participant SR as "Schema Registry"
+    participant TO as traffic-optimizer
+    participant AD as anomaly-detector
+    participant EO as energy-optimizer
+    participant DB as data-broker
+    participant KC as "Kafka Connect S3 Sink"
+    participant S3 as S3 Data Lake
+    participant AUR as Aurora PostgreSQL
+    participant API as API Gateway
+    participant APP as Multi-Tenant Apps
+
+%% ========================================================================
+%% IOT → MSK INGESTION
+%% ========================================================================
+    Note over IoT,MSK: Layer 1→3: 60K+ events/sec ingress (SNIFFY compression)
+    IoT->>GW: MQTT/TLS 1.3 / vehicle telemetry
+    IoT->>GW: MQTT/TLS 1.3 / environmental sensor data
+    IoT->>GW: MQTT/TLS 1.3 / traffic signal events
+    GW->>MSK: SASL_SSL/AWS_MSK_IAM / produce to topics
+    MSK->>SR: register/get AVRO schema / (auto.register=true)
+    SR-->>MSK: schema version 1..N / BACKWARD default
+
+%% ========================================================================
+%% TRAFFIC OPTIMIZER
+%% ========================================================================
+    Note over MSK,TO: traffic-optimizer SLO: sub-100ms p99
+    TO->>MSK: poll vehicle.telemetry (12p) / group: traffic-optimizer-group
+    TO->>MSK: poll signal.events (6p)
+    MSK-->>TO: deserialize via SR (AVRO)
+    SR-->>TO: latest schema version
+    Note right of TO: Compute optimal signal timing / based on real-time vehicle flow
+    TO->>MSK: produce signal.commands / acks=all, idempotent
+    TO->>MSK: produce incidents / (if collision detected)
+    TO->>AUR: persist traffic patterns / to city-services db
+
+%% ========================================================================
+%% ANOMALY DETECTOR
+%% ========================================================================
+    Note over MSK,AD: anomaly-detector SLO: sub-500ms p99
+    AD->>MSK: poll vehicle.telemetry (12p) / group: anomaly-detector-group
+    MSK-->>AD: deserialize via SR (AVRO)
+    Note right of AD: ML inference on telemetry stream / Detect: wrong-way, speeding, accidents
+    AD->>MSK: produce incidents
+    AD->>MSK: produce alerts.notifications
+
+%% ========================================================================
+%% ENERGY OPTIMIZER
+%% ========================================================================
+    Note over MSK,EO: energy-optimizer SLO: sub-1s p99
+    EO->>MSK: poll sensor.environmental (6p) / group: energy-optimizer-group
+    MSK-->>EO: deserialize via SR (AVRO)
+    Note right of EO: Analyze power consumption / Optimize street lighting / HVAC
+    EO->>MSK: produce alerts.notifications
+    EO->>AUR: persist energy models
+
+%% ========================================================================
+%% DATA BROKER (multi-tenant pipeline)
+%% ========================================================================
+    Note over MSK,DB: data-broker reads 3 topics, writes 2 sink topics
+    DB->>MSK: poll vehicle.telemetry (12p) / group: data-broker-group
+    DB->>MSK: poll sensor.environmental (6p)
+    DB->>MSK: poll signal.events (6p)
+    MSK-->>DB: deserialize via SR (AVRO)
+
+    Note over DB: ─── Processing Pipeline ───
+    Note over DB: Step 1: Anonymizer / Remove PII (driver_id, license_plate, phone) / Bucket speed → 0-10, 10-20, …, 120+ / Round GPS → 2 decimal places / Remove vehicle_id, vin, device_id
+    Note over DB: Step 2: Aggregator / 10s tumbling windows per district / Compute: avg_speed, vehicle_count, / congestion_level (low/moderate/high/severe)
+    Note over DB: Step 3: Access Controller / City planners → full aggregated data / Inventors → sector-level averages / Researchers → anonymized + aggregated
+
+    DB->>MSK: produce data.anonymized.vehicle / (researcher tier: filtered fields)
+    DB->>MSK: produce data.inventor.traffic / (inventor tier: sector averages)
+
+%% ========================================================================
+%% KAFKA CONNECT S3 SINK
+%% ========================================================================
+    Note over MSK,KC: Kafka Connect S3 Sink / Flush: 10K messages OR 1 hour
+    KC->>MSK: poll data.anonymized.vehicle (12p)
+    KC->>MSK: poll incidents (1p)
+    KC->>MSK: poll alerts.notifications (1p)
+    MSK-->>KC: deserialize via SR (AVRO)
+    KC->>S3: PutObject → s3://agora-data-lake/raw/ / partition by event_date/hour
+    Note over S3: Lifecycle transitions: / 30d → INTELLIGENT_TIERING / 90d → GLACIER / 2555d → Expire
+
+%% ========================================================================
+%% SCHEMA EVOLUTION
+%% ========================================================================
+    Note over SR: ─── Schema Compatibility ───
+    Note over SR: Default: BACKWARD (readers can read old data) / Alerts topic: FORWARD_TRANSITIVE / Schema Registry enforces on produce
+    Note over SR: Evolution rules: / - Adding optional fields: SAFE (BACKWARD) / - Removing fields: requires FORWARD / - Changing types: must be compatible
+
+%% ========================================================================
+%% DLQ FLOW
+%% ========================================================================
+    Note over MSK: ─── Dead Letter Queue (dlq.all) ───
+    TO-->>MSK: FAILURE → produce to dlq.all
+    AD-->>MSK: FAILURE → produce to dlq.all
+    EO-->>MSK: FAILURE → produce to dlq.all
+    DB-->>MSK: FAILURE → produce to dlq.all
+    Note over MSK: DLQ classifications: / 1. SchemaViolation — incompatible schema change / 2. DeserializationError — corrupt message / 3. TransientError — retryable (network, timeout) / 4. PoisonPill — unprocessable payload
+    MSK-->>KC: dlq processor reads from dlq.all
+    KC->>S3: archive DLQ to S3 for analysis
+
+%% ========================================================================
+%% API LAYER ACCESS
+%% ========================================================================
+    Note over API,APP: ─── API Consumption ───
+    APP->>API: HTTPS request (OAuth2)
+    API->>API: validate JWT, enforce RBAC
+    API->>AUR: query aggregated traffic data
+    AUR-->>API: return results
+    API-->>APP: JSON response
+
+%% ========================================================================
+%% METRICS VISIBILITY
+%% ========================================================================
+    Note over TO,DB: ─── Prometheus Metrics (port 8000) ───
+    Note over TO: broker_messages_read_total / broker_processing_seconds / broker_consumer_lag{partition}
+    Note over AD: broker_messages_read_total
+    Note over EO: broker_messages_read_total
+    Note over DB: broker_messages_read_total / broker_messages_written_total / broker_anonymized_total / broker_aggregated_total / broker_access_denied_total{reason} / broker_event_age_seconds

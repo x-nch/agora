@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "AnonymizedVehicleData",
+  "namespace": "agora.data.anonymized",
+  "doc": "PII-stripped vehicle telemetry for city services and analytics",
+  "fields": [
+    {"name": "record_id", "type": {"type": "string", "logicalType": "uuid"}},
+    {"name": "original_timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "vehicle_type", "type": "agora.telemetry.VehicleType"},
+    {"name": "district", "type": "agora.telemetry.District"},
+    {"name": "gps_lat_rounded", "type": "double", "doc": "GPS rounded to 100m grid"},
+    {"name": "gps_lng_rounded", "type": "double", "doc": "GPS rounded to 100m grid"},
+    {"name": "speed_kmh_bucket", "type": "string", "doc": "Speed bucket: 0-10, 10-20, 20-30, ..."},
+    {"name": "heading_quadrant", "type": {"type": "enum", "name": "HeadingQuadrant", "symbols": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]}},
+    {"name": "data_quality", "type": "float", "default": 1.0},
+    {"name": "original_event_type", "type": "agora.telemetry.EventType", "default": "periodic"},
+    {"name": "anonymized_at", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}

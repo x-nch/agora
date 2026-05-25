@@ -1,0 +1,63 @@
+graph TB
+  subgraph "Primary Region — ap-northeast-1"
+    subgraph "AZ 1a"
+      MSK1[MSK Broker 1]
+      AURORA_W[Aurora Writer]
+      EKS1[EKS Node Group 1]
+    end
+    subgraph "AZ 1c"
+      MSK2[MSK Broker 2]
+      AURORA_R1[Aurora Reader 1]
+      EKS2[EKS Node Group 2]
+    end
+    subgraph "AZ 1d"
+      MSK3[MSK Broker 3]
+      AURORA_R2[Aurora Reader 2]
+      EKS3[EKS Node Group 3]
+    end
+
+    S3_PRIMARY[S3 Data Lake<br/>+ Terraform State]
+    BACKUP_CRON[Terraform State Backup<br/>CronJob ⏰ 02:00 JST]
+    DYNAMODB_LOCK[DynamoDB Lock Table<br/>terraform-lock]
+  end
+
+  subgraph "DR Region — ap-southeast-1"
+    MSK_DR[MSK Cluster<br/>Provisioned]
+    AURORA_DR[Aurora Read Replica<br/>(promotable)]
+    S3_DR[S3 CRR Destination]
+    EKS_DR[EKS DR Cluster<br/>(standby)]
+  end
+
+  subgraph "Automation"
+    CLOUDWATCH_ALARM[CloudWatch Alarm<br/>Stale Lock Detection]
+    SNS_DR[📢 SNS DR Topic<br/>#dr-alerts]
+    BACKUP_BUCKET[agora-prod-backups<br/>State backup storage]
+  end
+
+  MSK1 --- MSK2 --- MSK3
+  AURORA_W -.->|async replication| AURORA_R1
+  AURORA_W -.->|async replication| AURORA_R2
+
+  S3_PRIMARY -.->|S3 CRR| S3_DR
+  AURORA_W -.->|Aurora Global DB<br/>(future)| AURORA_DR
+  MSK1 -.->|MirrorMaker 2<br/>(future)| MSK_DR
+
+  BACKUP_CRON -->|s3 cp --sse aws:kms| BACKUP_BUCKET
+  BACKUP_CRON -->|scan| DYNAMODB_LOCK
+  DYNAMODB_LOCK -->|ConditionalCheckFailed > 50| CLOUDWATCH_ALARM
+  CLOUDWATCH_ALARM --> SNS_DR
+
+  style MSK1 fill:#ce93d8,stroke:#7b1fa2,color:#000
+  style MSK2 fill:#ce93d8,stroke:#7b1fa2,color:#000
+  style MSK3 fill:#ce93d8,stroke:#7b1fa2,color:#000
+  style AURORA_W fill:#ef9a9a,stroke:#c62828,color:#000
+  style AURORA_R1 fill:#ffcdd2,stroke:#c62828,color:#000
+  style AURORA_R2 fill:#ffcdd2,stroke:#c62828,color:#000
+  style DYNAMODB_LOCK fill:#fff9c4,stroke:#f9a825,color:#000
+  style BACKUP_CRON fill:#b3e5fc,stroke:#0277bd,color:#000
+  style S3_DR fill:#c8e6c9,stroke:#2e7d32,color:#000
+  style AURORA_DR fill:#c8e6c9,stroke:#2e7d32,color:#000
+  style MSK_DR fill:#c8e6c9,stroke:#2e7d32,color:#000
+  style EKS_DR fill:#c8e6c9,stroke:#2e7d32,color:#000
+  style CLOUDWATCH_ALARM fill:#ffe0b2,stroke:#e65100,color:#000
+  style SNS_DR fill:#ffccbc,stroke:#bf360c,color:#000

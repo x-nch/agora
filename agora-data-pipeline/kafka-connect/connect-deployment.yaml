@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-connect
+  namespace: city-services
+  labels:
+    app: kafka-connect
+    component: data-pipeline
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kafka-connect
+  template:
+    metadata:
+      labels:
+        app: kafka-connect
+        component: data-pipeline
+    spec:
+      serviceAccountName: kafka-connect
+      containers:
+        - name: kafka-connect
+          image: confluentinc/cp-kafka-connect:7.6.0
+          ports:
+            - containerPort: 8083
+          env:
+            - name: CONNECT_BOOTSTRAP_SERVERS
+              value: "b-1:9098,b-2:9098,b-3:9098"
+            - name: CONNECT_REST_ADVERTISED_HOST_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CONNECT_GROUP_ID
+              value: "kafka-connect-agora"
+            - name: CONNECT_CONFIG_STORAGE_TOPIC
+              value: "connect-configs-agora"
+            - name: CONNECT_OFFSET_STORAGE_TOPIC
+              value: "connect-offsets-agora"
+            - name: CONNECT_STATUS_STORAGE_TOPIC
+              value: "connect-status-agora"
+            - name: CONNECT_KEY_CONVERTER
+              value: "io.confluent.connect.avro.AvroConverter"
+            - name: CONNECT_VALUE_CONVERTER
+              value: "io.confluent.connect.avro.AvroConverter"
+            - name: CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL
+              value: "http://schema-registry:8081"
+            - name: CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL
+              value: "http://schema-registry:8081"
+            - name: CONNECT_PLUGIN_PATH
+              value: "/usr/share/java,/usr/share/confluent-hub-components"
+            - name: CONNECT_SECURITY_PROTOCOL
+              value: SASL_SSL
+            - name: CONNECT_SASL_MECHANISM
+              value: AWS_MSK_IAM
+            - name: CONNECT_SASL_JAAS_CONFIG
+              value: "software.amazon.msk.auth.iam.IAMLoginModule required;"
+            - name: CONNECT_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+            - name: CONNECT_CONSUMER_SECURITY_PROTOCOL
+              value: SASL_SSL
+            - name: CONNECT_CONSUMER_SASL_MECHANISM
+              value: AWS_MSK_IAM
+            - name: CONNECT_CONSUMER_SASL_JAAS_CONFIG
+              value: "software.amazon.msk.auth.iam.IAMLoginModule required;"
+            - name: CONNECT_CONSUMER_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+            - name: CONNECT_PRODUCER_SECURITY_PROTOCOL
+              value: SASL_SSL
+            - name: CONNECT_PRODUCER_SASL_MECHANISM
+              value: AWS_MSK_IAM
+            - name: CONNECT_PRODUCER_SASL_JAAS_CONFIG
+              value: "software.amazon.msk.auth.iam.IAMLoginModule required;"
+            - name: CONNECT_PRODUCER_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+            - name: AWS_REGION
+              value: "ap-northeast-1"
+            - name: CONNECT_OFFSET_FLUSH_INTERVAL_MS
+              value: "60000"
+            - name: CONNECT_MAX_TASKS
+              value: "12"
+          readinessProbe:
+            httpGet:
+              path: /connectors
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /connectors
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 1
+              memory: 2Gi
+            limits:
+              cpu: 2
+              memory: 4Gi

@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "EnvironmentalSensor",
+  "namespace": "agora.sensor",
+  "doc": "Environmental sensor readings from city-wide IoT sensor network",
+  "fields": [
+    {"name": "sensor_id", "type": "string"},
+    {"name": "sensor_type", "type": {"type": "enum", "name": "SensorType", "symbols": ["temperature", "air_quality", "humidity", "noise", "solar_ irradiance", "wind_speed", "rainfall"]}},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "district", "type": "agora.telemetry.District"},
+    {"name": "location_grid", "type": "string", "doc": "100m grid cell identifier (e.g. '35.12_140.46')"},
+    {"name": "value", "type": "double"},
+    {"name": "unit", "type": "string"},
+    {"name": "confidence", "type": "float", "default": 1.0},
+    {"name": "metadata", "type": ["null", {"type": "map", "values": "string"}], "default": null}
+  ]
+}

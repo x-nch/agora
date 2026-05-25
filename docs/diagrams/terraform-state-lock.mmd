@@ -1,0 +1,50 @@
+sequenceDiagram
+    participant Dev1 as Developer A<br/>terraform apply
+    participant Dev2 as Developer B<br/>terraform apply
+    participant S3 as S3 State Bucket<br/>agora-terraform-state
+    participant DDB as DynamoDB Lock Table<br/>terraform-lock
+    participant CW as CloudWatch Alarm<br/>Stale Lock Detection
+    participant SNS as SNS Topic<br/>#dr-alerts
+
+    Note over Dev1,Dev2: Normal operation — serialized access
+
+    Dev1->>DDB: Acquire lock (ConditionalPut LockID)
+    DDB-->>Dev1: ✅ Lock acquired (version X)
+    Dev1->>S3: Read terraform.tfstate
+    S3-->>Dev1: State v5
+
+    Dev2->>DDB: Acquire lock (ConditionalPut LockID)
+    DDB-->>Dev2: ❌ ConditionalCheckFailed (locked by Dev1)
+
+    Dev1->>S3: Write new state v6
+    Dev1->>DDB: Release lock (DeleteItem)
+
+    Dev2->>DDB: Acquire lock (ConditionalPut LockID)
+    DDB-->>Dev2: ✅ Lock acquired (version X+1)
+    Dev2->>S3: Read terraform.tfstate v6
+    S3-->>Dev2: State v6 (latest)
+
+    Note over Dev2,CW: Stale lock scenario — runaway
+
+    Dev2->>S3: Write state v7 (timeout 💥)
+    Note over Dev2: Process crashes before release
+    Dev2-->>DDB: ❌ Lock still held (stale!)
+
+    Dev1->>DDB: Acquire lock (ConditionalPut LockID)
+    DDB-->>Dev1: ❌ ConditionalCheckFailed (stale lock)
+
+    Dev1->>DDB: Describe table → check LockID age
+    DDB-->>Dev1: Lock held for 15min (stale!)
+
+    DDB-->>CW: ConditionalCheckFailedRequests > 50
+    CW-->>SNS: 🚨 Stale lock detected!
+
+    Note over Dev1,SNS: Recovery — force unlock
+
+    Dev1->>DDB: Force delete stale lock
+    Dev1->>S3: Check state serial
+    S3-->>Dev1: State v6 (incomplete write)
+    Dev1->>S3: Push restored state
+    Dev1->>DDB: Acquire lock (fresh)
+    DDB-->>Dev1: ✅ Lock acquired
+    Dev1->>S3: Read state v6 (recovered)

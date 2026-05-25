@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consumer-config
+  namespace: city-services
+  labels:
+    app: agora-pipeline
+    component: client-configs
+data:
+  bootstrap.servers: "b-1:9098,b-2:9098,b-3:9098"
+  enable.auto.commit: "false"
+  auto.offset.reset: "earliest"
+  max.poll.records: "500"
+  max.poll.interval.ms: "300000"
+  session.timeout.ms: "45000"
+  heartbeat.interval.ms: "15000"
+  fetch.max.bytes: "52428800"
+  max.partition.fetch.bytes: "1048576"
+  security.protocol: "SASL_SSL"
+  sasl.mechanism: "AWS_MSK_IAM"

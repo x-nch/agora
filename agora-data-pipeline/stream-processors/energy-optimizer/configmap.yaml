@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: energy-optimizer-config
+data:
+  GROUP_ID: "energy-optimizer"
+  LOG_LEVEL: "INFO"
